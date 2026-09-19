@@ -1,0 +1,3253 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>頭痛ろぐ</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#f8f9fa;
+    --card:#ffffff;
+    --card-hover:#f3f6fa;
+    --ink:#1f2328;
+    --ink-soft:#656d76;
+    --line:#c8d0da;
+    --control-line:#b8c3d0;
+    --accent:#4a5d80;
+    --accent-soft:#eef2f7;
+    --input-bg:#f5f7fa;
+    --date-input-bg:#eef2f7;
+    --header-action-height:44px;
+    --button-height:44px;
+    --lv1:#88b584;
+    --lv2:#d9b85c;
+    --lv3:#d97f43;
+    --lv4:#c04d3e;
+    --lv1-text:#2d522a;
+    --lv2-text:#634b12;
+    --lv3-text:#733b16;
+    --lv4-text:#6e251c;
+    --ink-faint:#78818b;
+    --chart-grid:#d9dee5;
+    --chart-axis:#7a8490;
+    --shadow:0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+    --radius:16px;
+  }
+  [data-theme="dark"]{
+    --bg:#14161a;
+    --card:#1d2127;
+    --card-hover:#242830;
+    --ink:#e6edf3;
+    --ink-soft:#8b949e;
+    --line:#30363d;
+    --control-line:#46515f;
+    --accent:#7993bf;
+    --accent-soft:#252d3a;
+    --input-bg:#16191f;
+    --date-input-bg:#10141a;
+    --lv1:#50784d;
+    --lv2:#8f7b3b;
+    --lv3:#9c582c;
+    --lv4:#94372c;
+    --lv1-text:#b8e4b4;
+    --lv2-text:#fae19b;
+    --lv3-text:#ffbf96;
+    --lv4-text:#ffa99c;
+    --ink-faint:#66707a;
+    --chart-grid:#3b4653;
+    --chart-axis:#aab4c0;
+    --shadow:0 1px 3px rgba(0,0,0,0.25);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  button{min-height:var(--button-height);font-family:inherit;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    padding-top:env(safe-area-inset-top);
+  }
+  header{
+    padding:12px 18px 8px;
+    flex-shrink:0;
+  }
+  .header-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  header h1{
+    font-size:19px;
+    font-weight:700;
+    margin:0;
+    letter-spacing:0.01em;
+  }
+  header p{
+    margin:0;
+    font-size:12px;
+    color:var(--ink-soft);
+    white-space:nowrap;
+  }
+  .header-actions{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .btn-theme-toggle{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:var(--header-action-height);
+    height:var(--header-action-height);
+    min-width:var(--header-action-height);
+    min-height:var(--header-action-height);
+    flex:0 0 var(--header-action-height);
+    border-radius:50%;
+    border:1px solid var(--control-line);
+    background:var(--card);
+    color:var(--ink);
+    cursor:pointer;
+    font-size:16px;
+    padding:0;
+  }
+  .btn-theme-toggle:active{transform:scale(0.95);}
+  main{
+    padding:0 8px 20px;
+    max-width:640px;
+    margin:0 auto;
+    width:100%;
+    flex:1 1 auto;
+    min-height:0;
+    overflow-y:auto;
+  }
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:16px;
+    margin-bottom:12px;
+    box-shadow:var(--shadow);
+  }
+  .card h2{
+    font-size:14px;
+    font-weight:600;
+    margin:0 0 12px;
+    color:var(--ink);
+  }
+  .row{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .row > *{
+    min-width:0;
+  }
+  label.field{
+    display:block;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-bottom:4px;
+  }
+  input[type=date],input[type=text],textarea,select{
+    width:100%;
+    min-width:0;
+    min-height:44px;
+    border:1px solid var(--control-line);
+    border-radius:12px;
+    padding:10px 10px;
+    font-size:15px;
+    background:var(--input-bg);
+    color:var(--ink);
+    font-family:inherit;
+    box-sizing:border-box;
+  }
+  input[type=date]{background:var(--date-input-bg);}
+  [data-theme="dark"] input[type=date]{
+    color-scheme:dark;
+    border-color:#5c6a7c;
+    background-color:var(--date-input-bg);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23e6edf3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='17' rx='2'/%3E%3Cpath d='M16 2v4M8 2v4M3 10h18'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;
+    background-position:right 9px center;
+    background-size:18px 18px;
+    padding-right:36px;
+  }
+  [data-theme="dark"] input[type=date]::-webkit-calendar-picker-indicator{
+    opacity:0;
+    cursor:pointer;
+  }
+  input[type=date]:focus-visible,input[type=text]:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible{
+    outline:3px solid var(--accent-soft);
+    outline-offset:2px;
+    border-color:var(--accent);
+  }
+  .datetime-row{
+    display:flex;
+    flex-wrap:nowrap;
+    justify-content:center;
+    align-items:center;
+    gap:8px;
+  }
+  .datetime-row .form-date-label{
+    flex:0 0 auto;
+    font-size:15px;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .time-field{
+    flex:0 1 auto;
+    min-width:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+  }
+  .time-field select{
+    flex:0 1 52px;
+    min-width:48px;
+    min-height:44px;
+    width:auto;
+    padding:10px 2px;
+    text-align:center;
+    font-size:16px;
+    font-weight:400;
+  }
+  .time-field .colon{
+    color:var(--ink-soft);
+    font-size:15px;
+    font-weight:600;
+    flex-shrink:0;
+  }
+  textarea{resize:vertical;min-height:60px;}
+  .field-group{margin-bottom:12px;}
+  .tag-input-row{
+    display:flex;
+    gap:8px;
+    margin-bottom:8px;
+    flex-wrap:wrap;
+  }
+  .tag-input-row input{flex:1 1 140px;min-width:0;min-height:44px;}
+  .btn{
+    border:1px solid var(--line);
+    background:var(--accent);
+    border-radius:12px;
+    padding:10px 16px;
+    min-height:var(--button-height);
+    font-size:14px;
+    color:var(--ink);
+    white-space:nowrap;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .btn:not(:disabled){
+    color:#fff;
+    border-color:var(--accent);
+  }
+  .btn:active{transform:scale(0.97);}
+  .btn-add{
+    background:var(--accent);
+    color:#fff;
+    border-color:var(--accent);
+  }
+  .btn-primary{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:100%;
+    min-height:var(--button-height);
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    border-radius:14px;
+    padding:10px 12px;
+    font-size:16px;
+    font-weight:600;
+    letter-spacing:0.02em;
+  }
+  .btn-primary:active{transform:scale(0.99);}
+  .btn-primary.update-dirty{
+    box-shadow:0 0 0 3px var(--accent-soft),0 4px 10px rgba(74,93,128,0.28);
+    font-weight:700;
+  }
+  .btn-primary:disabled{
+    background:var(--line);
+    color:var(--ink-soft);
+    border:1px solid var(--line);
+    box-shadow:none;
+    cursor:not-allowed;
+    opacity:0.5;
+  }
+  button:disabled{
+    cursor:not-allowed;
+    filter:grayscale(0.8);
+  }
+  .btn:disabled,
+  .btn-cloud-status:disabled,
+  .auth-btn-row button:disabled{
+    background:var(--card-hover);
+    color:var(--ink-soft);
+    border-color:var(--line);
+    opacity:0.6;
+  }
+  .chip-suggest{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:10px;
+  }
+  .chip-suggest button{
+    border:1px solid transparent;
+    border-radius:999px;
+    padding:8px 14px;
+    min-height:44px;
+    font-size:13.5px;
+    font-weight:500;
+    cursor:pointer;
+  }
+  .remove-x{
+    color:var(--ink-soft);
+    font-size:18px;
+    padding:0 4px;
+    margin-left:2px;
+  }
+  .sym-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:3px 10px 3px 15px;
+    min-height:29px;
+    border-radius:999px;
+    font-size:14px;
+    font-weight:500;
+    cursor:pointer;
+    box-sizing:border-box;
+    text-align:center;
+  }
+  .sym-chip > span:first-child,
+  .med-chip > span:first-child{
+    flex:1;
+    text-align:center;
+  }
+  .sev-circle{
+    width:22px;height:22px;
+    border-radius:50%;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    font-size:12px;
+    font-weight:700;
+    flex-shrink:0;
+  }
+  .med-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:3px 10px 3px 14px;
+    min-height:29px;
+    border-radius:999px;
+    font-size:13.5px;
+    font-weight:500;
+    cursor:pointer;
+    box-sizing:border-box;
+    text-align:center;
+  }
+  .pill-list{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:8px;
+  }
+  .empty-hint{
+    font-size:12.5px;
+    color:var(--ink-soft);
+  }
+  .tag-empty-box{
+    width:100%;
+    border:1.5px dashed var(--line);
+    border-radius:12px;
+    padding:14px 10px;
+    text-align:center;
+    font-size:12.5px;
+    color:var(--ink-soft);
+  }
+  .sym-chip.chip-off, .med-chip.chip-off{
+    opacity:0.45;
+    font-weight:500;
+  }
+  .sym-chip.chip-on, .med-chip.chip-on{
+    opacity:1;
+    font-weight:600;
+  }
+  .tabbar{
+    display:flex;
+    border-top:1px solid var(--line);
+    padding:6px 10px 6px;
+  }
+  .tabbar button{
+    flex:1;
+    border:none;
+    background:none;
+    padding:8px 0 4px;
+    font-size:12px;
+    color:var(--ink-soft);
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+  }
+  .tabbar button .ic{font-size:19px;}
+  .tabbar button.active{color:var(--accent);font-weight:600;}
+  .bottom-fixed{
+    background:var(--card);
+    max-width:640px;
+    margin:0 auto;
+    width:100%;
+    padding-bottom:env(safe-area-inset-bottom);
+    flex-shrink:0;
+    box-shadow:0 -2px 10px rgba(0,0,0,0.05);
+  }
+  .save-bar{
+    padding:10px 14px 4px;
+    display:none;
+  }
+  .save-bar.show{display:block;}
+  .save-bar-row{display:flex;gap:8px;}
+  .save-bar-row .btn-primary{flex:1;}
+  .btn-delete{
+    flex:0 0 auto;
+    min-width:88px;
+    border:1px solid #a83226;
+    background:#a83226;
+    color:#fff;
+    font-weight:600;
+  }
+  [data-theme="dark"] .btn-delete{border-color:#b9473b;background:#b9473b;color:#fff;}
+  .btn-delete:disabled{opacity:0.45;cursor:not-allowed;}
+  .btn-cancel{
+    flex:0 0 auto;
+    color:var(--ink-soft);
+  }
+  .view{display:none;}
+  .view.active{display:block;}
+  #view-record.view.active{display:block;}
+  #record-calendar{display:none;}
+  #record-form{margin-right:-8px;padding-right:8px;}
+  .cal-list-card{display:block;}
+  .cal-list-card .cal-list-header{flex-shrink:0;}
+  #cal-day-list{margin-right:-8px;padding-right:8px;}
+  .entry-item{
+    border-bottom:1px solid var(--line);
+    padding:11px 0;
+  }
+  .entry-item:last-child{border-bottom:none;}
+  .entry-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:5px;
+  }
+  .entry-date{font-size:13px;font-weight:600;color:var(--ink);}
+  .entry-time{font-size:11.5px;color:var(--ink-soft);}
+  .entry-tags{
+    display:flex;
+    flex-wrap:wrap;
+    gap:5px;
+    margin-bottom:4px;
+  }
+  .tag-badge{
+    font-size:11.5px;
+    padding:3px 9px;
+    border-radius:999px;
+    font-weight:500;
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+  }
+  .tag-badge .sev-circle{width:15px;height:15px;font-size:9.5px;}
+  .entry-memo{font-size:12.5px;color:var(--ink-soft);}
+  .empty{
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:13px;
+    padding:24px 0;
+  }
+  .stats-card-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+  .stats-card-header h2{margin:0;}
+  .stats-card-header + .timeline-sub{border-top:1px solid var(--line);padding-top:16px;}
+  .recent-list-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+  .recent-list-header h2{margin:0;}
+  .recent-list-header + #recent-list{border-top:1px solid var(--line);padding-top:4px;}
+  .sort-buttons{display:flex;gap:6px;flex-shrink:0;}
+  .sort-buttons button{border:1px solid var(--control-line);background:var(--card-hover);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--ink-soft);}
+  .sort-buttons button.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+  .range-row{display:flex;gap:8px;align-items:center;margin-bottom:4px;flex-wrap:wrap;}
+  .date-input-wrap{position:relative;flex:1 1 0;min-width:0;display:flex;}
+  .date-input-wrap input[type=date]{flex:1 1 auto;min-width:0;padding:10px 38px 10px 8px;font-size:14px;}
+  .date-picker-btn{position:absolute;right:1px;top:1px;width:40px;height:42px;border:0;border-radius:0 11px 11px 0;background:transparent;color:var(--ink-soft);font-size:17px;cursor:pointer;}
+  .range-row span{color:var(--ink-soft);font-size:12px;}
+  .quick-range{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+  .quick-range.custom-period button{opacity:0.55;}
+  .quick-range button{
+    min-height:var(--button-height);
+    border:1px solid var(--control-line);
+    background:var(--card-hover);
+    border-radius:8px;
+    padding:6px 12px;
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+  .quick-range button.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .stat-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:4px;}
+  .stat-box{min-width:0;background:var(--accent-soft);border-radius:8px;padding:7px 8px;}
+  .stat-box .num{font-size:16px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .stat-box .lbl{font-size:10.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .stats-method-card{padding-bottom:16px;}
+  .chart-mode-toggle{display:flex;gap:14px;flex-wrap:wrap;justify-content:flex-end;}
+  .chart-mode-group{display:flex;align-items:center;gap:6px;}
+  .chart-mode-group + .chart-mode-group{padding-left:14px;border-left:1px solid var(--line);}
+  .chart-mode-toggle button{min-height:var(--button-height);border:1px solid var(--control-line);background:var(--card-hover);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--ink-soft);}
+  .chart-mode-toggle button.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+  .scroll-top-btn{
+    position:fixed;
+    right:max(16px, calc((100vw - 640px) / 2 + 16px));
+    bottom:calc(126px + env(safe-area-inset-bottom));
+    z-index:20;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    width:42px;
+    height:42px;
+    border:1px solid var(--control-line);
+    border-radius:10px;
+    background:var(--card);
+    color:var(--accent);
+    box-shadow:var(--shadow);
+    font-size:20px;
+    cursor:pointer;
+  }
+  .scroll-top-btn.show{display:inline-flex;}
+  .chart-wrap{position:relative;height:220px;margin-top:8px;}
+  .heatmap-wrap{height:auto !important;max-height:350px;overflow-x:hidden;overflow-y:auto;}
+  .heatmap-table{width:calc(100% - 6px);table-layout:fixed;border-collapse:separate;border-spacing:3px;font-size:10px;}
+  .heatmap-table th{height:22px;font-weight:500;color:var(--chart-axis);white-space:nowrap;padding:0 1px 4px;text-align:center;overflow:visible;}
+  .heatmap-table.heatmap-dense th{height:42px;vertical-align:bottom;}
+  .heatmap-table.heatmap-dense th:not(:first-child) span{display:inline-block;transform:rotate(-45deg);transform-origin:center bottom;}
+  .heatmap-table th:first-child{position:sticky;left:0;z-index:1;background:var(--card);text-align:left;}
+  .heatmap-table th:first-child,.heatmap-table td.heatmap-tag{width:76px;}
+  .heatmap-table td{height:27px;padding:2px 1px;border-radius:5px;text-align:center;white-space:nowrap;}
+  .heatmap-table td.heatmap-tag{position:sticky;left:0;background:var(--card);color:var(--ink);font-size:11px;text-align:left;max-width:100px;overflow:hidden;text-overflow:ellipsis;}
+  .heatmap-table td.heatmap-empty{background:var(--accent-soft);color:var(--ink-faint);}
+  .heatmap-tooltip{position:fixed;z-index:40;max-width:calc(100vw - 24px);padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:var(--ink);color:var(--bg);font-size:11px;line-height:1.35;box-shadow:var(--shadow);pointer-events:none;}
+  .heatmap-legend{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;color:var(--ink-soft);font-size:10.5px;}
+  .heatmap-legend-bar{display:grid;grid-template-columns:repeat(4,1fr);width:120px;height:12px;border-radius:3px;overflow:hidden;}
+  .heatmap-legend-bar i{display:block;}
+  .timeline-sub{margin-bottom:16px;}
+  .timeline-sub + .timeline-sub{border-top:1px solid var(--line);padding-top:16px;}
+  .timeline-sub:last-child{margin-bottom:0;}
+  .timeline-sub-header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;}
+  .timeline-sub-label{font-size:13px;font-weight:600;color:var(--ink);}
+  .timeline-mode-toggle{display:flex;gap:5px;flex-shrink:0;}
+  .timeline-mode-toggle button{min-height:var(--button-height);border:1px solid var(--control-line);background:var(--card-hover);border-radius:8px;padding:5px 9px;font-size:11px;color:var(--ink-soft);}
+  .timeline-mode-toggle button.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+  .bar-row{display:flex;align-items:center;gap:10px;padding:7px 0;cursor:pointer;}
+  .bar-row .bname{width:78px;font-size:12.5px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .bar-track{flex:1;height:20px;background:var(--accent-soft);border-radius:6px;overflow:hidden;position:relative;display:flex;}
+  .bar-seg{height:100%;}
+  .bar-count{width:26px;text-align:right;font-size:12px;color:var(--ink-soft);}
+  .legend{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 2px;font-size:12px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:4px;}
+  .legend i{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .detail-overlay{
+    position:fixed;inset:0;
+    background:rgba(0,0,0,0.4);
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:50;
+  }
+  .detail-overlay.active{display:flex;}
+  .detail-sheet{
+    background:var(--card);
+    width:100%;
+    max-width:640px;
+    max-height:70vh;
+    overflow-y:auto;
+    border-radius:18px 18px 0 0;
+    padding:16px 16px calc(env(safe-area-inset-bottom) + 16px);
+  }
+  .detail-sheet h3{margin:0 0 10px;font-size:14px;}
+  .close-sheet{
+    display:block;
+    margin:10px auto 0;
+    border:none;background:none;color:var(--accent);font-size:13px;font-weight:600;
+  }
+  .tagmgr-group{margin-bottom:18px;}
+  .tagmgr-group h3{font-size:13px;font-weight:600;color:var(--ink-soft);margin:0 0 8px;}
+  .tagmgr-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 0;
+    border-bottom:1px solid var(--line);
+    touch-action:pan-y;
+  }
+  .tagmgr-row:last-child{border-bottom:none;}
+  .tagmgr-row.dragging{
+    background:var(--accent-soft);
+    border-radius:10px;
+    box-shadow:0 3px 10px rgba(0,0,0,0.12);
+    opacity:0.9;
+  }
+  .drag-handle{
+    width:44px;min-width:44px;min-height:44px;
+    padding:4px 0;
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:17px;line-height:1;color:var(--ink-soft);
+    flex-shrink:0;cursor:grab;touch-action:none;user-select:none;
+  }
+  .tagmgr-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+  .tagmgr-name{flex:1;font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tagmgr-name.hidden-tag{color:var(--ink-soft);text-decoration:line-through;}
+  .vis-toggle{
+    min-height:var(--button-height);
+    border:1px solid var(--control-line);
+    background:transparent;
+    border-radius:8px;
+    font-size:12px;
+    padding:6px 9px;
+    color:var(--ink-soft);
+    flex-shrink:0;
+  }
+  .vis-toggle.toggle-on{
+    color:#fff;
+    border-color:var(--accent);
+    background:var(--accent);
+  }
+
+  .cal-card{padding:12px 10px 10px;flex-shrink:0;}
+  .cal-header{display:flex;align-items:center;justify-content:center;padding:2px 4px 8px;}
+  .cal-header span{font-size:15px;font-weight:600;}
+  .cal-nav-row{display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;padding-top:6px;}
+  .cal-nav-row button{min-height:44px;background:none;border:none;font-size:14px;color:var(--accent);font-weight:600;padding:8px;}
+  .cal-prev-btn{justify-self:start;}
+  .cal-today-btn{justify-self:center;}
+  .cal-next-btn{justify-self:end;}
+  .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:12px;color:var(--ink-soft);margin-bottom:4px;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+  .cal-day{
+    position:relative;
+    min-height:44px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:1px;
+    border-radius:8px;
+    cursor:pointer;
+  }
+  .cal-day.other-month .daynum{color:var(--ink-faint);}
+  .cal-day .daynum{
+    font-size:15px;
+    width:30px;height:30px;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:50%;
+  }
+  .cal-day.today .daynum{background:var(--accent-soft);color:var(--accent);font-weight:600;}
+  .cal-day.selected .daynum{background:var(--accent);color:#fff;font-weight:600;}
+  .cal-dots{display:flex;gap:2px;height:4px;}
+  .cal-dots i{width:4px;height:4px;border-radius:50%;display:inline-block;}
+  .cal-list-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;}
+  .cal-list-header h2{margin:0;}
+  .cal-selected-date{font-size:12.5px;color:var(--ink-soft);}
+  .day-entry-item{cursor:pointer;}
+  .form-back-row{margin-bottom:2px;}
+  .form-back-row button{
+    background:none;border:none;color:var(--accent);font-size:13.5px;font-weight:600;padding:6px 0;
+  }
+
+  /* クラウド同期・認証関連スタイル */
+  .btn-cloud-status{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    border:1px solid var(--line);
+    background:var(--accent);
+    color:#fff;
+    padding:5px 11px;
+    height:var(--header-action-height);
+    min-height:var(--header-action-height);
+    border-radius:20px;
+    font-size:11.5px;
+    font-weight:600;
+    cursor:pointer;
+    font-family:inherit;
+    transition:all 0.15s;
+  }
+  .btn-cloud-status:active{transform:scale(0.97);}
+  .settings-action-row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .settings-action-row p{margin:0;flex:1;font-size:13px;color:var(--ink-soft);line-height:1.45;}
+  .settings-cloud{width:100%;min-height:44px;height:44px;justify-content:center;border-radius:12px;font-size:14px;}
+  .settings-version{margin:0;color:var(--ink-soft);font-size:13px;}
+  .version-row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .version-row h2{margin:0;}
+  .sample-details summary{min-height:44px;display:flex;align-items:center;cursor:pointer;color:var(--ink);font-size:14px;font-weight:600;}
+  .sample-details summary::before{content:'▶';color:var(--accent);font-size:12px;margin-right:8px;}
+  .sample-details details[open] summary::before{content:'▼';}
+  .sample-details summary::marker{display:none;}
+  .sample-details p{margin:4px 0 12px;}
+  .cloud-dot{
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:#aaa;
+    display:inline-block;
+  }
+  .cloud-dot.connected{background:#48bb78;}
+  .cloud-dot.syncing{background:#ecc94b;}
+  .cloud-dot.error{background:#f56565;}
+
+  .auth-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.45);
+    z-index:900;
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+  }
+  .auth-overlay.active{display:flex;}
+  .auth-sheet{
+    background:var(--card);
+    color:var(--ink);
+    border-radius:20px 20px 0 0;
+    width:100%;
+    max-width:560px;
+    max-height:calc(100vh - env(safe-area-inset-top));
+    overflow-y:auto;
+    padding:20px 20px 30px;
+    box-shadow:0 -4px 24px rgba(0,0,0,0.25);
+  }
+  .auth-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:14px;
+    padding-bottom:10px;
+    border-bottom:1px solid var(--line);
+  }
+  .auth-header h3{
+    margin:0;
+    font-size:16px;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .auth-close-btn{
+    background:none;
+    border:none;
+    font-size:18px;
+    color:var(--ink-soft);
+    cursor:pointer;
+    padding:4px;
+  }
+  .auth-msg{
+    padding:8px 12px;
+    border-radius:8px;
+    font-size:12px;
+    margin-bottom:12px;
+    display:none;
+  }
+  .auth-msg.error{background:#fee2e2;color:#991b1b;display:block;}
+  .auth-msg.success{background:#dcfce7;color:#166534;display:block;}
+  .auth-msg.info{background:#e0f2fe;color:#075985;display:block;}
+  .auth-card{
+    background:var(--card-hover);
+    border:1px solid var(--control-line);
+    border-radius:12px;
+    padding:14px;
+    margin-bottom:12px;
+  }
+  .auth-field{margin-bottom:10px;}
+  .auth-field label{
+    display:block;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-bottom:4px;
+    font-weight:500;
+  }
+  .auth-field input{
+    width:100%;
+    min-height:44px;
+    padding:10px 12px;
+    border:1px solid var(--control-line);
+    border-radius:8px;
+    font-size:14px;
+    box-sizing:border-box;
+    font-family:inherit;
+    background:var(--input-bg);
+    color:var(--ink);
+  }
+  .auth-btn-row{
+    display:flex;
+    gap:8px;
+    margin-top:12px;
+  }
+  .auth-btn-row button{
+    flex:1;
+    padding:10px;
+    min-height:var(--button-height);
+    font-size:13px;
+    font-weight:600;
+    border-radius:8px;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .btn-auth-primary{
+    background:var(--accent);
+    color:#fff;
+    border:none;
+  }
+  .btn-auth-secondary{
+    background:var(--accent);
+    color:#fff;
+    border:1px solid var(--accent);
+  }
+  .btn-auth-danger{
+    background:#a83226;
+    color:#fff;
+    border:1px solid #a83226;
+  }
+  [data-theme="dark"] .btn-auth-danger{background:#b9473b;color:#fff;border-color:#b9473b;}
+  .auth-toggle-sec{
+    margin-top:14px;
+    padding-top:12px;
+    border-top:1px dashed var(--line);
+    font-size:12px;
+  }
+  .auth-explanation{
+    margin:0 0 12px;
+    color:var(--ink-soft);
+    font-size:12px;
+    line-height:1.5;
+  }
+  .auth-setting-title{
+    margin-bottom:8px;
+  }
+  .auth-section-title{
+    margin:18px 0 10px;
+    padding-top:12px;
+    border-top:1px dashed var(--line);
+    color:var(--ink);
+    font-size:13px;
+    font-weight:600;
+  }
+  .auth-login-box.config-unavailable{
+    opacity:0.45;
+  }
+  .auth-login-box.config-unavailable input,
+  .auth-login-box.config-unavailable button{
+    cursor:not-allowed;
+  }
+  .auth-toggle-btn{
+    background:none;
+    border:none;
+    color:var(--accent);
+    cursor:pointer;
+    padding:0;
+    font-size:12px;
+    font-weight:600;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <h1>頭痛ろぐ</h1>
+    <p id="header-sub">読み込み中…</p>
+  </div>
+</header>
+
+<main>
+
+  <div id="view-record" class="view active">
+
+  <div id="record-calendar">
+    <div class="card cal-card">
+      <div class="cal-header">
+        <span id="cal-month-label"></span>
+      </div>
+      <div class="cal-weekdays"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-nav-row">
+        <button class="cal-prev-btn" id="cal-prev">‹ 前月</button>
+        <button class="cal-today-btn" id="cal-today">今日</button>
+        <button class="cal-next-btn" id="cal-next">翌月 ›</button>
+      </div>
+    </div>
+    <div class="card cal-list-card">
+      <div class="cal-list-header">
+        <h2>記録一覧</h2>
+        <span class="cal-selected-date" id="cal-selected-label"></span>
+      </div>
+      <div id="cal-day-list"><div class="empty">まだ記録がありません</div></div>
+    </div>
+  </div>
+
+  <div id="record-form">
+    <div class="card">
+      <h2>日時</h2>
+      <div class="datetime-row">
+        <div class="date-input-wrap">
+          <input type="date" id="in-date" aria-label="記録日">
+          <button type="button" class="date-picker-btn" data-date-target="in-date" aria-label="記録日のカレンダーを開く">▣</button>
+        </div>
+        <div class="time-field">
+          <select id="in-hour"></select>
+          <span class="colon">:</span>
+          <select id="in-minute"></select>
+        </div>
+        <button type="button" class="btn btn-now" id="btn-now">今</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>体調（タップで選択・状態1〜4を切替）</h2>
+      <div class="chip-suggest" id="symptom-list"></div>
+      <div class="tag-input-row">
+        <input type="text" id="in-symptom-tag" placeholder="タグを追加：頭痛、吐き気 など">
+        <button class="btn btn-add" id="btn-add-symptom">追加</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>服薬（タップで選択）</h2>
+      <div class="chip-suggest" id="med-list"></div>
+      <div class="tag-input-row">
+        <input type="text" id="in-med-tag" placeholder="タグを追加：ロキソニン など">
+        <button class="btn btn-add" id="btn-add-med">追加</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>メモ</h2>
+      <div class="chip-suggest" id="memotag-list"></div>
+      <div class="tag-input-row">
+        <input type="text" id="in-memo-tag" placeholder="タグを追加：天気、睡眠不足 など">
+        <button class="btn btn-add" id="btn-add-memotag">追加</button>
+      </div>
+      <div class="field-group" style="margin-top:10px;">
+        <textarea id="in-memo" placeholder="気づいたことを自由に"></textarea>
+      </div>
+    </div>
+  </div>
+
+  </div>
+
+  <div id="view-stats" class="view">
+    <div class="card">
+      <div class="stats-card-header">
+        <h2>集計期間</h2>
+        <div class="quick-range">
+          <button data-days="1" id="btn-range-today">本日</button>
+          <button data-days="7">直近7日</button>
+          <button data-days="30" id="btn-range-30" class="active">直近30日</button>
+          <button data-days="0" id="btn-range-all">全期間</button>
+        </div>
+      </div>
+      <div class="range-row">
+        <div class="date-input-wrap">
+          <input type="date" id="range-start">
+          <button type="button" class="date-picker-btn" data-date-target="range-start" aria-label="開始日のカレンダーを開く">▣</button>
+        </div>
+        <span>〜</span>
+        <div class="date-input-wrap">
+          <input type="date" id="range-end">
+          <button type="button" class="date-picker-btn" data-date-target="range-end" aria-label="終了日のカレンダーを開く">▣</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="stat-summary" id="stat-summary"></div>
+    </div>
+
+    <div class="card">
+      <div class="stats-card-header">
+        <h2>時系列</h2>
+        <p class="empty-hint" style="margin:0;text-align:right;" id="timeline-caption"></p>
+      </div>
+      <div class="timeline-sub">
+        <div class="timeline-sub-header">
+          <div class="timeline-sub-label">体調（タグ別の平均状態）</div>
+          <div class="timeline-mode-toggle" role="group" aria-label="体調の集計方法">
+            <button type="button" class="active" data-timeline-action="symptom-state">状態</button>
+            <button type="button" data-timeline-action="symptom-count-daily">日毎</button>
+            <button type="button" data-timeline-action="symptom-count-cumulative">累計</button>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:170px;"><canvas id="chart-symptom"></canvas></div>
+      </div>
+      <div class="timeline-sub">
+        <div class="timeline-sub-header">
+          <div class="timeline-sub-label">服薬（タグ別の回数）</div>
+          <div class="timeline-mode-toggle" role="group" aria-label="服薬の集計方法">
+            <button type="button" class="active" data-timeline-action="med-daily">日毎</button>
+            <button type="button" data-timeline-action="med-cumulative">累計</button>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:150px;"><canvas id="chart-med"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="recent-list-header">
+        <h2>記録一覧</h2>
+        <div class="sort-buttons" role="group" aria-label="記録一覧の並び順">
+          <button type="button" data-recent-sort="asc">昇順</button>
+          <button type="button" class="active" data-recent-sort="desc">降順</button>
+        </div>
+      </div>
+      <div id="recent-list"><div class="empty">まだ記録がありません</div></div>
+    </div>
+  </div>
+
+  <div id="view-tagmgr" class="view">
+    <div class="card">
+      <h2>テーマ切り替え</h2>
+      <div class="settings-action-row">
+        <p>表示テーマをライト／ダークに切り替えます。</p>
+        <button id="btn-theme-toggle" class="btn-theme-toggle" type="button" title="テーマ切り替え (ライト/ダーク)" aria-label="テーマ切り替え"><span id="theme-icon">🌙</span></button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>タグの表示・並び替え</h2>
+      <p class="empty-hint" style="margin:-6px 0 14px;">タグ名は過去の記録にそのまま残るため削除はできません。非表示にすると入力画面の候補から隠せます。右端の⠿を長押しするとドラッグで並び替えできます。</p>
+      <div class="tagmgr-group">
+        <h3>体調タグ</h3>
+        <div id="tagmgr-symptom"></div>
+      </div>
+      <div class="tagmgr-group">
+        <h3>服薬タグ</h3>
+        <div id="tagmgr-med"></div>
+      </div>
+      <div class="tagmgr-group">
+        <h3>メモタグ</h3>
+        <div id="tagmgr-memo"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>クラウド同期設定</h2>
+      <p class="empty-hint" style="margin:-6px 0 12px;">下のボタンからクラウド同期とアカウントを設定できます。</p>
+      <button id="btn-auth-open" class="btn-cloud-status settings-cloud" type="button" title="クラウド同期とアカウント設定"><span id="cloud-dot" class="cloud-dot"></span><span id="cloud-status-text">未接続</span></button>
+    </div>
+    <div class="card">
+      <div class="version-row">
+        <h2>バージョン情報</h2>
+        <p class="settings-version">頭痛ろぐ v0.1.0</p>
+      </div>
+    </div>
+    <div class="card sample-details">
+      <details>
+        <summary>サンプルデータ</summary>
+        <p class="empty-hint">動作確認用に、直近30日分・1日あたり1〜6件の記録を追加します。既存の記録は消えません。</p>
+        <button class="btn" id="btn-add-sample" style="width:100%;">サンプルデータを追加</button>
+      </details>
+    </div>
+  </div>
+
+</main>
+
+<div class="bottom-fixed">
+  <div class="save-bar" id="record-bar">
+    <button class="btn-primary" id="btn-goto-form">＋ 記録する</button>
+  </div>
+  <div class="save-bar show" id="save-bar">
+    <div class="save-bar-row">
+      <button class="btn btn-delete" id="btn-delete" type="button" disabled>削除</button>
+      <button class="btn-primary" id="btn-save">この記録を保存</button>
+    </div>
+  </div>
+  <div class="tabbar">
+    <button class="tab-btn active" data-view="record"><span class="ic">✎</span>記録する</button>
+    <button class="tab-btn" data-view="stats"><span class="ic">▤</span>記録を見る</button>
+    <button class="tab-btn" data-view="tagmgr"><span class="ic">⚙</span>設定</button>
+  </div>
+</div>
+
+<button class="scroll-top-btn" id="scroll-top-btn" type="button" title="一番上へ戻る" aria-label="一番上へ戻る">↑</button>
+
+<div class="detail-overlay" id="detail-overlay">
+  <div class="detail-sheet">
+    <h3 id="detail-title"></h3>
+    <div id="detail-body"></div>
+    <button class="close-sheet" id="detail-close">閉じる</button>
+  </div>
+</div>
+
+<!-- クラウド同期・認証モーダル -->
+<div class="auth-overlay" id="auth-overlay">
+  <div class="auth-sheet">
+    <div class="auth-header">
+      <h3 id="auth-sheet-title">☁ クラウド同期 (Supabase)</h3>
+      <button class="auth-close-btn" id="auth-close">✕</button>
+    </div>
+
+    <div id="auth-msg-box" class="auth-msg"></div>
+
+    <div class="auth-toggle-sec" style="margin-top:0;padding-top:0;border-top:none;">
+      <div class="auth-setting-title" style="font-weight:600;color:var(--ink);">Supabase接続先設定</div>
+      <p class="auth-explanation">PC・スマホ間で記録を自動同期するには設定が必要です。<br>SupabaseのProject URLとAPI Keyを設定して下さい。<br>※自動同期未設定のままでも記録は可能です。サイトデータを削除すると記録が消える場合があります。</p>
+      <div id="auth-config-box" style="margin-top:10px;">
+        <div class="auth-field">
+          <label for="cfg-supabase-url">Project URL</label>
+          <input type="text" id="cfg-supabase-url" placeholder="https://xxxxxxxx.supabase.co">
+        </div>
+        <div class="auth-field">
+          <label for="cfg-supabase-key">API Key (Publishable / Legacy anon)</label>
+          <input type="password" id="cfg-supabase-key" placeholder="sb_publishable_... または eyJhbGci...">
+        </div>
+        <div class="auth-btn-row">
+          <button type="button" class="btn-auth-secondary" id="btn-save-config">接続設定を保存</button>
+          <button type="button" class="btn-auth-danger" id="btn-delete-config" disabled>設定を削除</button>
+        </div>
+        <p style="font-size:11px;color:var(--ink-soft);margin:6px 0 0;line-height:1.4;">
+          ※Supabaseの [Project Settings] &gt; [API Keys] にある「Publishable key」または「Legacy anon key」を入力してください（※service_role / secret は入力しないでください）。この端末に安全に保存されます。
+        </p>
+      </div>
+    </div>
+
+    <div class="auth-section-title">ユーザーアカウント</div>
+    <p class="auth-explanation">SupabaseのProject内にユーザーアカウントを新規登録することでユーザアカウント毎に記録を保存できます。</p>
+
+    <!-- ログイン済み表示エリア -->
+    <div id="auth-logged-in-box" style="display:none;">
+      <div class="auth-card">
+        <p style="margin:0 0 4px;font-size:11.5px;color:var(--ink-soft);">ログイン中のアカウント</p>
+        <p style="margin:0;font-size:14px;font-weight:600;word-break:break-all;" id="auth-user-email">-</p>
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
+          <span id="sync-last-time" style="font-size:11.5px;color:var(--ink-soft);">最終同期: -</span>
+        </div>
+      </div>
+      <div class="auth-btn-row">
+        <button type="button" class="btn-auth-primary" id="btn-sync-now">今すぐ手動同期</button>
+        <button type="button" class="btn-auth-secondary" id="btn-auth-logout">ログアウト</button>
+      </div>
+    </div>
+
+    <!-- 未ログイン（ログイン・登録フォーム）エリア -->
+    <div id="auth-login-box" class="auth-login-box">
+      <div class="auth-field">
+        <label for="auth-email">メールアドレス</label>
+        <input type="email" id="auth-email" placeholder="example@example.com" autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label for="auth-password">パスワード</label>
+        <input type="password" id="auth-password" placeholder="6文字以上" autocomplete="current-password">
+      </div>
+      <div class="auth-btn-row">
+        <button type="button" class="btn-auth-primary" id="btn-auth-signin">ログイン</button>
+        <button type="button" class="btn-auth-secondary" id="btn-auth-signup">新規登録</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+
+  var STORE_KEY = 'headache_entries_v1';
+  var TAGS_KEY = 'headache_tags_v2';
+
+  var state = {
+    entries: [],
+    tags: { symptom: [], med: [], memo: [] },
+    draft: { symptoms: [], meds: [], memoTags: [] },
+    editingId: null,
+    editSnapshot: null
+  };
+
+  var TAG_PALETTE = [
+    { bg:'#E69F00', text:'#1f2328' },
+    { bg:'#56B4E9', text:'#102a38' },
+    { bg:'#009E73', text:'#ffffff' },
+    { bg:'#F0E442', text:'#1f2328' },
+    { bg:'#0072B2', text:'#ffffff' },
+    { bg:'#D55E00', text:'#ffffff' },
+    { bg:'#CC79A7', text:'#ffffff' }
+  ];
+  function tagColor(tag){
+    var h = 0;
+    for(var i=0;i<tag.length;i++){ h = (h * 31 + tag.charCodeAt(i)) >>> 0; }
+    return TAG_PALETTE[h % TAG_PALETTE.length];
+  }
+  function sevColor(lv){
+    return { 1: '#9ec49a', 2: '#e3c46b', 3: '#e08a4c', 4: '#c85a4a' }[lv] || '#ccc';
+  }
+  function sevTextColor(lv){
+    return { 1: '#3f6a3c', 2: '#7a5e18', 3: '#8f4d21', 4: '#8a3226' }[lv] || '#555';
+  }
+  function heatmapColor(value){
+    var stops = [
+      [158,196,154],
+      [227,196,107],
+      [224,138,76],
+      [200,90,74]
+    ];
+    var position = Math.max(0, Math.min(3, value - 1));
+    var lower = Math.floor(position);
+    var upper = Math.min(3, lower + 1);
+    var ratio = position - lower;
+    var rgb = stops[lower].map(function(channel, index){
+      return Math.round(channel + (stops[upper][index] - channel) * ratio);
+    });
+    return 'rgb(' + rgb.join(',') + ')';
+  }
+
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  function todayStr(){
+    var d = new Date();
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+
+  function populateTimeSelects(){
+    var hourSel = document.getElementById('in-hour');
+    var minSel = document.getElementById('in-minute');
+    hourSel.innerHTML = '';
+    for(var h=0; h<24; h++){
+      var opt = document.createElement('option');
+      opt.value = String(h).padStart(2,'0');
+      opt.textContent = String(h).padStart(2,'0');
+      hourSel.appendChild(opt);
+    }
+    minSel.innerHTML = '';
+    for(var m=0; m<60; m+=5){
+      var opt2 = document.createElement('option');
+      opt2.value = String(m).padStart(2,'0');
+      opt2.textContent = String(m).padStart(2,'0');
+      minSel.appendChild(opt2);
+    }
+  }
+  function setCurrentTime(){
+    var d = new Date();
+    var roundedMin = Math.round(d.getMinutes() / 5) * 5;
+    var hour = d.getHours();
+    if(roundedMin === 60){ roundedMin = 0; hour = (hour + 1) % 24; }
+    document.getElementById('in-hour').value = String(hour).padStart(2,'0');
+    document.getElementById('in-minute').value = String(roundedMin).padStart(2,'0');
+  }
+  function getTimeValue(){
+    return document.getElementById('in-hour').value + ':' + document.getElementById('in-minute').value;
+  }
+  document.getElementById('in-hour').addEventListener('change', function(){ syncEditingFromTime(); });
+  document.getElementById('in-minute').addEventListener('change', function(){ syncEditingFromTime(); });
+
+  // ---------- storage & polyfill ----------
+  var SUPABASE_CONFIG_KEY = 'headache_supabase_config_v1';
+  var LAST_SYNC_KEY = 'headache_last_sync_time_v1';
+
+  // 既定のSupabase接続設定（コード直書きまたは空文字。空文字の場合はUIから入力保存可能）
+  var DEFAULT_SUPABASE_URL = '';
+  var DEFAULT_SUPABASE_KEY = '';
+
+  var supabaseClient = null;
+  var currentUser = null;
+  var isSyncing = false;
+
+  // window.storage ポリフィル (localStorage)
+  if (!window.storage) {
+    window.storage = {
+      get: async function(k){
+        try{
+          var v = localStorage.getItem(k);
+          return v !== null ? { value: v } : null;
+        }catch(e){ return null; }
+      },
+      set: async function(k, v){
+        try{ localStorage.setItem(k, v); }catch(e){}
+      }
+    };
+  }
+
+  function updateCloudStatus(status, text){
+    var dot = document.getElementById('cloud-dot');
+    var txt = document.getElementById('cloud-status-text');
+    if(dot) dot.className = 'cloud-dot ' + (status || '');
+    if(txt) txt.textContent = text || '未接続';
+  }
+
+  function getSupabaseConfig(){
+    try{
+      var raw = localStorage.getItem(SUPABASE_CONFIG_KEY);
+      if(raw){
+        var parsed = JSON.parse(raw);
+        if(parsed.url || parsed.key) return parsed;
+      }
+    }catch(e){}
+    return { url: DEFAULT_SUPABASE_URL, key: DEFAULT_SUPABASE_KEY };
+  }
+
+  function hasStoredSupabaseConfig(){
+    try{
+      var raw = localStorage.getItem(SUPABASE_CONFIG_KEY);
+      if(!raw) return false;
+      var parsed = JSON.parse(raw);
+      return !!(parsed && ((parsed.url && String(parsed.url).trim()) || (parsed.key && String(parsed.key).trim())));
+    }catch(e){ return false; }
+  }
+
+  function validateSupabaseConfig(url, key){
+    if(!url && !key) return 'Project URLとAPI Keyを入力してください。';
+    if(!url) return 'Project URLを入力してください。';
+    if(!key) return 'API Keyを入力してください。';
+    try{
+      var parsedUrl = new URL(url);
+      if(parsedUrl.protocol !== 'https:' && parsedUrl.protocol !== 'http:'){
+        return 'Project URLはhttp://またはhttps://で始まるURLを入力してください。';
+      }
+      if(!parsedUrl.hostname){
+        return 'Project URLの形式が正しくありません。';
+      }
+    }catch(e){
+      return 'Project URLの形式が正しくありません。';
+    }
+    if(key.indexOf('sb_publishable_') !== 0 && key.indexOf('eyJ') !== 0){
+      return 'API KeyはPublishable keyまたはLegacy anon keyを入力してください。';
+    }
+    return '';
+  }
+
+  function showAuthMessage(type, text){
+    var box = document.getElementById('auth-msg-box');
+    if(!box) return;
+    if(!text){
+      box.style.display = 'none';
+      box.className = 'auth-msg';
+      box.textContent = '';
+      return;
+    }
+    box.className = 'auth-msg ' + (type || 'info');
+    box.textContent = text;
+    box.style.display = 'block';
+  }
+
+  function renderAuthUI(){
+    var loggedInBox = document.getElementById('auth-logged-in-box');
+    var loginBox = document.getElementById('auth-login-box');
+    var userEmail = document.getElementById('auth-user-email');
+    var lastSyncLabel = document.getElementById('sync-last-time');
+    var config = getSupabaseConfig();
+    var configReady = !!(config.url && config.key);
+    var loginControls = loginBox ? loginBox.querySelectorAll('input, button') : [];
+
+    var lastSync = localStorage.getItem(LAST_SYNC_KEY) || '-';
+    if(lastSyncLabel) lastSyncLabel.textContent = '最終同期: ' + lastSync;
+
+    if(currentUser){
+      if(loggedInBox) loggedInBox.style.display = 'block';
+      if(loginBox) loginBox.style.display = 'none';
+      if(userEmail) userEmail.textContent = currentUser.email || 'ログイン中';
+    } else {
+      if(loggedInBox) loggedInBox.style.display = 'none';
+      if(loginBox) loginBox.style.display = 'block';
+      if(loginBox) loginBox.classList.toggle('config-unavailable', !configReady);
+      Array.prototype.forEach.call(loginControls, function(control){ control.disabled = !configReady; });
+    }
+    updateAuthActionAvailability();
+  }
+
+  function updateAuthActionAvailability(){
+    var configUrl = document.getElementById('cfg-supabase-url');
+    var configKey = document.getElementById('cfg-supabase-key');
+    var configButton = document.getElementById('btn-save-config');
+    var deleteConfigButton = document.getElementById('btn-delete-config');
+    if(configButton) configButton.disabled = !(configUrl && configUrl.value.trim() && configKey && configKey.value.trim());
+    if(deleteConfigButton) deleteConfigButton.disabled = !hasStoredSupabaseConfig();
+
+    var config = getSupabaseConfig();
+    var configReady = !!(config.url && config.key);
+    var email = document.getElementById('auth-email');
+    var password = document.getElementById('auth-password');
+    var hasCredentials = !!(email && email.value.trim() && password && password.value);
+    var signIn = document.getElementById('btn-auth-signin');
+    var signUp = document.getElementById('btn-auth-signup');
+    if(signIn) signIn.disabled = !configReady || !hasCredentials;
+    if(signUp) signUp.disabled = !configReady || !hasCredentials || password.value.length < 6;
+  }
+
+  function initSupabase(){
+    var cfg = getSupabaseConfig();
+    var inpUrl = document.getElementById('cfg-supabase-url');
+    var inpKey = document.getElementById('cfg-supabase-key');
+    if(inpUrl) inpUrl.value = cfg.url || '';
+    if(inpKey) inpKey.value = cfg.key || '';
+
+    if(!window.supabase || !cfg.url || !cfg.key){
+      supabaseClient = null;
+      currentUser = null;
+      updateCloudStatus('', '未設定');
+      renderAuthUI();
+      return Promise.resolve(false);
+    }
+
+    try{
+      supabaseClient = window.supabase.createClient(cfg.url, cfg.key, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true
+        }
+      });
+
+      supabaseClient.auth.onAuthStateChange(function(event, session){
+        currentUser = session ? session.user : null;
+        renderAuthUI();
+        if(session){
+          updateCloudStatus('connected', '同期済');
+          if(event === 'SIGNED_IN'){
+            syncWithCloud(false);
+          }
+        } else {
+          updateCloudStatus('', '未ログイン');
+        }
+      });
+
+      return supabaseClient.auth.getSession().then(function(res){
+        if(res && res.error) throw res.error;
+        if(res && res.data && res.data.session){
+          currentUser = res.data.session.user;
+          updateCloudStatus('connected', '同期済');
+          syncWithCloud(false);
+        } else {
+          currentUser = null;
+          updateCloudStatus('', '未ログイン');
+        }
+        renderAuthUI();
+        return true;
+      }).catch(function(err){
+        console.warn('Session check failed', err);
+        updateCloudStatus('error', '未接続');
+        return false;
+      });
+
+    }catch(err){
+      console.error('Supabase init error', err);
+      updateCloudStatus('error', '設定エラー');
+      return Promise.resolve(false);
+    }
+  }
+
+  async function syncWithCloud(forceUpload){
+    if(!supabaseClient || !currentUser || isSyncing) return;
+    isSyncing = true;
+    updateCloudStatus('syncing', '同期中…');
+
+    try{
+      var res = await supabaseClient
+        .from('user_headache_data')
+        .select('entries, tags, updated_at')
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+
+      if(res.error && res.error.code !== 'PGRST116'){
+        console.error('Fetch cloud data error', res.error);
+        updateCloudStatus('error', '同期失敗');
+        showAuthMessage('error', '同期エラー: ' + (res.error.message || '通信失敗'));
+        isSyncing = false;
+        return;
+      }
+
+      var nowIso = new Date().toISOString();
+      var cloudData = res.data;
+
+      if(!cloudData){
+        // クラウド側にまだ行がない場合 -> ローカルのデータを新規登録
+        var ins = await supabaseClient
+          .from('user_headache_data')
+          .insert({
+            user_id: currentUser.id,
+            entries: state.entries,
+            tags: state.tags,
+            updated_at: nowIso
+          });
+        if(ins.error){
+          console.error('Insert cloud data error', ins.error);
+          updateCloudStatus('error', '保存エラー');
+          showAuthMessage('error', 'クラウド保存失敗: ' + ins.error.message);
+          isSyncing = false;
+          return;
+        }
+      } else if(forceUpload){
+        // 強制アップロード
+        var up = await supabaseClient
+          .from('user_headache_data')
+          .upsert({
+            user_id: currentUser.id,
+            entries: state.entries,
+            tags: state.tags,
+            updated_at: nowIso
+          });
+        if(up.error){
+          console.error('Upsert cloud data error', up.error);
+          updateCloudStatus('error', '同期エラー');
+          isSyncing = false;
+          return;
+        }
+      } else {
+        // クラウドとローカルの双方向マージ
+        var cloudEntries = Array.isArray(cloudData.entries) ? cloudData.entries : [];
+        var entryMap = {};
+        cloudEntries.forEach(function(e){ if(e && e.id) entryMap[e.id] = e; });
+        state.entries.forEach(function(e){
+          if(!entryMap[e.id] || (e.createdAt && (!entryMap[e.id].createdAt || e.createdAt >= entryMap[e.id].createdAt))){
+            entryMap[e.id] = e;
+          }
+        });
+        state.entries = Object.values(entryMap);
+
+        if(cloudData.tags){
+          var cloudTags = migrateTags(cloudData.tags);
+          ['symptom','med','memo'].forEach(function(kind){
+            cloudTags[kind].forEach(function(ct){
+              var found = state.tags[kind].find(function(lt){ return lt.name === ct.name; });
+              if(!found) state.tags[kind].push(ct);
+            });
+          });
+        }
+
+        // ローカルに保存
+        await window.storage.set(STORE_KEY, JSON.stringify(state.entries));
+        await window.storage.set(TAGS_KEY, JSON.stringify(state.tags));
+
+        // クラウドにも統合結果を更新
+        await supabaseClient
+          .from('user_headache_data')
+          .upsert({
+            user_id: currentUser.id,
+            entries: state.entries,
+            tags: state.tags,
+            updated_at: nowIso
+          });
+
+        // UI再描画
+        document.getElementById('header-sub').textContent = state.entries.length + '件の記録';
+        renderSymptomDraft();
+        renderMedDraft();
+        renderMemoTagDraft();
+        renderTagMgr();
+        renderCalendar();
+        var statsView = document.getElementById('view-stats');
+        if(statsView && statsView.classList.contains('active')) renderStats();
+      }
+
+      var lastSyncStr = new Date().toLocaleTimeString('ja-JP', { hour:'2-digit', minute:'2-digit' });
+      var lastSyncLabel = document.getElementById('sync-last-time');
+      if(lastSyncLabel) lastSyncLabel.textContent = '最終同期: ' + lastSyncStr;
+      localStorage.setItem(LAST_SYNC_KEY, lastSyncStr);
+      updateCloudStatus('connected', '同期済');
+      showAuthMessage('success', 'クラウドと同期しました (' + lastSyncStr + ')');
+      setTimeout(function(){ showAuthMessage(null); }, 4000);
+
+    }catch(err){
+      console.error('syncWithCloud exception', err);
+      updateCloudStatus('error', '同期失敗');
+    }finally{
+      isSyncing = false;
+    }
+  }
+
+  function migrateTags(raw){
+    var out = { symptom: [], med: [], memo: [] };
+    ['symptom','med','memo'].forEach(function(kind){
+      var arr = (raw && raw[kind]) || [];
+      out[kind] = arr.map(function(item){
+        if(typeof item === 'string') return { name: item, hidden: false };
+        return { name: item.name, hidden: !!item.hidden };
+      });
+    });
+    return out;
+  }
+
+  async function loadAll(){
+    try{
+      var r = await window.storage.get(STORE_KEY);
+      state.entries = r ? JSON.parse(r.value) : [];
+    }catch(e){ state.entries = []; }
+    try{
+      var t = await window.storage.get(TAGS_KEY);
+      state.tags = t ? migrateTags(JSON.parse(t.value)) : { symptom: [], med: [], memo: [] };
+    }catch(e){ state.tags = { symptom: [], med: [], memo: [] }; }
+    document.getElementById('header-sub').textContent = state.entries.length + '件の記録';
+    renderSymptomDraft();
+    renderMedDraft();
+    renderMemoTagDraft();
+    renderTagMgr();
+    renderCalendar();
+    syncEditingFromTime();
+  }
+
+  async function saveEntries(){
+    try{ await window.storage.set(STORE_KEY, JSON.stringify(state.entries)); }
+    catch(e){ console.error('save failed', e); }
+    document.getElementById('header-sub').textContent = state.entries.length + '件の記録';
+
+    // ログイン中の場合はクラウドへ同期
+    if(supabaseClient && currentUser){
+      syncWithCloud(true);
+    }
+  }
+
+  async function saveTags(){
+    try{ await window.storage.set(TAGS_KEY, JSON.stringify(state.tags)); }
+    catch(e){ console.error('save tags failed', e); }
+
+    // ログイン中の場合はクラウドへ同期
+    if(supabaseClient && currentUser){
+      syncWithCloud(true);
+    }
+  }
+
+  function addKnownTag(kind, val){
+    val = val.trim();
+    if(!val) return;
+    var exists = state.tags[kind].some(function(t){ return t.name === val; });
+    if(!exists){
+      state.tags[kind].push({ name: val, hidden: false });
+      saveTags();
+      renderTagMgr();
+    }
+  }
+
+  // ---- merged tag lists: known tags shown tone-down, selected tags tone-up ----
+  function renderSymptomDraft(){
+    var el = document.getElementById('symptom-list');
+    el.innerHTML = '';
+    var visible = state.tags.symptom.filter(function(t){ return !t.hidden; });
+    if(visible.length === 0){
+      el.innerHTML = '<div class="tag-empty-box">追加されたタグがここに表示されます</div>';
+      return;
+    }
+    visible.forEach(function(t){
+      var c = tagColor(t.name);
+      var draftItem = state.draft.symptoms.find(function(s){ return s.tag === t.name; });
+      var chip = document.createElement('span');
+      chip.className = 'sym-chip ' + (draftItem ? 'chip-on' : 'chip-off');
+      chip.style.background = c.bg;
+      chip.style.color = c.text;
+      var label = document.createElement('span');
+      label.textContent = t.name;
+      chip.appendChild(label);
+      if(draftItem){
+        var circle = document.createElement('span');
+        circle.className = 'sev-circle';
+        circle.style.background = sevColor(draftItem.severity);
+        circle.style.color = sevTextColor(draftItem.severity);
+        circle.textContent = draftItem.severity;
+        chip.appendChild(circle);
+        var x = document.createElement('span');
+        x.className = 'remove-x';
+        x.style.color = c.text;
+        x.textContent = '✕';
+        x.onclick = function(e){
+          e.stopPropagation();
+          state.draft.symptoms = state.draft.symptoms.filter(function(s){ return s.tag !== t.name; });
+          renderSymptomDraft();
+          updateSaveButtonLabel();
+        };
+        chip.appendChild(x);
+        chip.onclick = function(){
+          draftItem.severity = (draftItem.severity % 4) + 1;
+          renderSymptomDraft();
+        };
+      } else {
+        chip.onclick = function(){
+          state.draft.symptoms.push({ tag: t.name, severity: 2 });
+          renderSymptomDraft();
+        };
+      }
+      el.appendChild(chip);
+    });
+  }
+
+  function renderMedDraft(){
+    var el = document.getElementById('med-list');
+    el.innerHTML = '';
+    var visible = state.tags.med.filter(function(t){ return !t.hidden; });
+    if(visible.length === 0){
+      el.innerHTML = '<div class="tag-empty-box">追加されたタグがここに表示されます</div>';
+      return;
+    }
+    visible.forEach(function(t){
+      var c = tagColor(t.name);
+      var isOn = state.draft.meds.indexOf(t.name) !== -1;
+      var chip = document.createElement('span');
+      chip.className = 'med-chip ' + (isOn ? 'chip-on' : 'chip-off');
+      chip.style.background = c.bg;
+      chip.style.color = c.text;
+      var label = document.createElement('span');
+      label.textContent = t.name;
+      chip.appendChild(label);
+      if(isOn){
+        var x = document.createElement('span');
+        x.className = 'remove-x';
+        x.style.color = c.text;
+        x.textContent = '✕';
+        chip.appendChild(x);
+      }
+      chip.onclick = function(){
+        var idx = state.draft.meds.indexOf(t.name);
+        if(idx === -1) state.draft.meds.push(t.name);
+        else state.draft.meds.splice(idx,1);
+        renderMedDraft();
+      };
+      el.appendChild(chip);
+    });
+  }
+
+  function renderMemoTagDraft(){
+    var el = document.getElementById('memotag-list');
+    el.innerHTML = '';
+    var visible = state.tags.memo.filter(function(t){ return !t.hidden; });
+    if(visible.length === 0){
+      el.innerHTML = '<div class="tag-empty-box">追加されたタグがここに表示されます</div>';
+      return;
+    }
+    visible.forEach(function(t){
+      var c = tagColor(t.name);
+      var isOn = state.draft.memoTags.indexOf(t.name) !== -1;
+      var chip = document.createElement('span');
+      chip.className = 'med-chip ' + (isOn ? 'chip-on' : 'chip-off');
+      chip.style.background = c.bg;
+      chip.style.color = c.text;
+      var label = document.createElement('span');
+      label.textContent = t.name;
+      chip.appendChild(label);
+      if(isOn){
+        var x = document.createElement('span');
+        x.className = 'remove-x';
+        x.style.color = c.text;
+        x.textContent = '✕';
+        chip.appendChild(x);
+      }
+      chip.onclick = function(){
+        var idx = state.draft.memoTags.indexOf(t.name);
+        if(idx === -1) state.draft.memoTags.push(t.name);
+        else state.draft.memoTags.splice(idx,1);
+        renderMemoTagDraft();
+      };
+      el.appendChild(chip);
+    });
+  }
+
+  function escapeHtml(s){
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function updateTagAddButtons(){
+    [
+      ['in-symptom-tag', 'btn-add-symptom'],
+      ['in-med-tag', 'btn-add-med'],
+      ['in-memo-tag', 'btn-add-memotag']
+    ].forEach(function(pair){
+      var input = document.getElementById(pair[0]);
+      var button = document.getElementById(pair[1]);
+      if(input && button) button.disabled = !input.value.trim();
+    });
+  }
+
+  document.getElementById('btn-add-symptom').onclick = function(){
+    var inp = document.getElementById('in-symptom-tag');
+    var val = inp.value.trim();
+    if(val){
+      addKnownTag('symptom', val);
+      if(!state.draft.symptoms.some(function(s){ return s.tag === val; })){
+        state.draft.symptoms.push({ tag: val, severity: 2 });
+      }
+      renderSymptomDraft();
+    }
+    inp.value = '';
+    updateTagAddButtons();
+    inp.focus();
+  };
+  document.getElementById('in-symptom-tag').addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('btn-add-symptom').click(); }
+  });
+  document.getElementById('in-symptom-tag').addEventListener('input', updateTagAddButtons);
+  document.getElementById('btn-add-med').onclick = function(){
+    var inp = document.getElementById('in-med-tag');
+    var val = inp.value.trim();
+    if(val){
+      addKnownTag('med', val);
+      if(state.draft.meds.indexOf(val) === -1) state.draft.meds.push(val);
+      renderMedDraft();
+    }
+    inp.value = '';
+    updateTagAddButtons();
+    inp.focus();
+  };
+  document.getElementById('in-med-tag').addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('btn-add-med').click(); }
+  });
+  document.getElementById('in-med-tag').addEventListener('input', updateTagAddButtons);
+  document.getElementById('btn-add-memotag').onclick = function(){
+    var inp = document.getElementById('in-memo-tag');
+    var val = inp.value.trim();
+    if(val){
+      addKnownTag('memo', val);
+      if(state.draft.memoTags.indexOf(val) === -1) state.draft.memoTags.push(val);
+      renderMemoTagDraft();
+    }
+    inp.value = '';
+    updateTagAddButtons();
+    inp.focus();
+  };
+  document.getElementById('in-memo-tag').addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('btn-add-memotag').click(); }
+  });
+  document.getElementById('in-memo-tag').addEventListener('input', updateTagAddButtons);
+  updateTagAddButtons();
+
+  // ---------- save ----------
+  document.getElementById('btn-save').onclick = async function(){
+    if(this.disabled) return;
+    var date = document.getElementById('in-date').value;
+    if(!date){
+      alert('日付を入力してください');
+      return;
+    }
+    var time = getTimeValue();
+    var duplicate = state.entries.find(function(e){ return e.date === date && e.time === time && e.id !== state.editingId; });
+    if(duplicate){
+      loadEntryIntoDraft(duplicate);
+      alert('同じ日時の記録が既にあるため、その内容を読み込みました。内容を確認して更新してください。');
+      return;
+    }
+    var payload = {
+      date: date,
+      time: time,
+      symptoms: state.draft.symptoms.map(function(s){ return { tag: s.tag, severity: s.severity }; }),
+      meds: state.draft.meds.slice(),
+      memo: document.getElementById('in-memo').value.trim(),
+      memoTags: state.draft.memoTags.slice()
+    };
+    var hasContent = payload.symptoms.length > 0
+      || payload.meds.length > 0
+      || payload.memoTags.length > 0
+      || payload.memo.length > 0;
+    if(!hasContent){
+      alert('症状、服薬、メモのいずれかを入力してください');
+      return;
+    }
+    if(state.editingId){
+      var idx = state.entries.findIndex(function(e){ return e.id === state.editingId; });
+      if(idx !== -1){
+        payload.id = state.entries[idx].id;
+        payload.createdAt = state.entries[idx].createdAt;
+        state.entries[idx] = payload;
+      } else {
+        payload.id = uid();
+        payload.createdAt = Date.now();
+        state.entries.push(payload);
+      }
+    } else {
+      payload.id = uid();
+      payload.createdAt = Date.now();
+      state.entries.push(payload);
+    }
+    await saveEntries();
+    calSelectedDate = date;
+    clearFormFields();
+    backToCalendar();
+  };
+
+  function setFormDate(dateStr){
+    document.getElementById('in-date').value = dateStr;
+    var d = dateFromStr(dateStr);
+    var wd = ['日','月','火','水','木','金','土'][d.getDay()];
+    var label = document.getElementById('form-date-label');
+    if(label) label.textContent = d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日('+wd+')';
+  }
+
+  function updateSaveButtonLabel(){
+    var saveButton = document.getElementById('btn-save');
+    var isDirty = !!state.editingId && hasDraftChanges();
+    var hasContent = state.draft.symptoms.length > 0
+      || state.draft.meds.length > 0
+      || state.draft.memoTags.length > 0
+      || document.getElementById('in-memo').value.trim().length > 0;
+    saveButton.textContent = state.editingId ? 'この記録を更新' : 'この記録を保存';
+    saveButton.classList.toggle('update-dirty', isDirty);
+    saveButton.disabled = !document.getElementById('in-date').value || !hasContent || (!!state.editingId && !isDirty);
+    document.getElementById('btn-delete').disabled = !state.editingId;
+  }
+
+  function hasDraftChanges(){
+    if(!state.editSnapshot) return false;
+    return state.editSnapshot.date !== document.getElementById('in-date').value
+      || state.editSnapshot.time !== getTimeValue()
+      || JSON.stringify(state.editSnapshot.symptoms) !== JSON.stringify(state.draft.symptoms)
+      || JSON.stringify(state.editSnapshot.meds) !== JSON.stringify(state.draft.meds)
+      || JSON.stringify(state.editSnapshot.memoTags) !== JSON.stringify(state.draft.memoTags)
+      || state.editSnapshot.memo !== document.getElementById('in-memo').value.trim();
+  }
+
+  document.getElementById('btn-delete').onclick = async function(){
+    if(!state.editingId) return;
+    if(!confirm('この記録を削除しますか？')) return;
+    state.entries = state.entries.filter(function(entry){ return entry.id !== state.editingId; });
+    await saveEntries();
+    renderCalendar();
+    backToCalendar();
+  };
+
+  function clearFormFields(){
+    state.editingId = null;
+    state.editSnapshot = null;
+    state.draft = { symptoms: [], meds: [], memoTags: [] };
+    document.getElementById('in-memo').value = '';
+    renderSymptomDraft();
+    renderMedDraft();
+    renderMemoTagDraft();
+    updateSaveButtonLabel();
+  }
+
+  function loadEntryIntoDraft(entry){
+    state.editingId = entry.id;
+    state.draft.symptoms = entry.symptoms.map(function(s){ return { tag: s.tag, severity: s.severity }; });
+    state.draft.meds = entry.meds.slice();
+    state.draft.memoTags = (entry.memoTags||[]).slice();
+    document.getElementById('in-memo').value = entry.memo || '';
+    state.editSnapshot = {
+      date: entry.date,
+      time: entry.time || '',
+      symptoms: state.draft.symptoms.map(function(s){ return { tag: s.tag, severity: s.severity }; }),
+      meds: state.draft.meds.slice(),
+      memoTags: state.draft.memoTags.slice(),
+      memo: entry.memo || ''
+    };
+    renderSymptomDraft();
+    renderMedDraft();
+    renderMemoTagDraft();
+    updateSaveButtonLabel();
+  }
+
+  function syncEditingFromTime(){
+    var date = document.getElementById('in-date').value;
+    var time = getTimeValue();
+    var existing = state.entries.find(function(e){ return e.date === date && e.time === time; });
+    if(existing){
+      if(state.editingId !== existing.id) loadEntryIntoDraft(existing);
+      else updateSaveButtonLabel();
+    } else if(state.editingId !== null){
+      clearFormFields();
+    }
+  }
+
+  function resetDraft(){
+    clearFormFields();
+    setFormDate(todayStr());
+    setCurrentTime();
+    syncEditingFromTime();
+  }
+
+  document.getElementById('record-form').addEventListener('input', function(){
+    updateSaveButtonLabel();
+  });
+  document.getElementById('record-form').addEventListener('change', function(){
+    updateSaveButtonLabel();
+  });
+  document.getElementById('record-form').addEventListener('click', function(){
+    updateSaveButtonLabel();
+  });
+
+  function sevBadgeStyle(lv){
+    return 'background:' + sevColor(lv) + '22;';
+  }
+
+  function renderRecent(entries){
+    var el = document.getElementById('recent-list');
+    var sorted = entries.slice().sort(function(a,b){
+      var aKey = a.date + ' ' + (a.time || '');
+      var bKey = b.date + ' ' + (b.time || '');
+      var result = aKey < bKey ? -1 : (aKey > bKey ? 1 : 0);
+      return recentSortOrder === 'asc' ? result : -result;
+    });
+    document.querySelectorAll('[data-recent-sort]').forEach(function(button){
+      button.classList.toggle('active', button.getAttribute('data-recent-sort') === recentSortOrder);
+    });
+    if(sorted.length === 0){
+      el.innerHTML = '<div class="empty">この期間の記録がありません</div>';
+      return;
+    }
+    el.innerHTML = '';
+    sorted.forEach(function(e){
+      var item = document.createElement('div');
+      item.className = 'entry-item';
+      var top = document.createElement('div');
+      top.className = 'entry-top';
+      top.innerHTML = '<span class="entry-date">'+e.date+'</span><span class="entry-time">'+(e.time||'')+'</span>';
+      item.appendChild(top);
+      var tags = document.createElement('div');
+      tags.className = 'entry-tags';
+      e.symptoms.forEach(function(s){
+        var c = tagColor(s.tag);
+        var b = document.createElement('span');
+        b.className = 'tag-badge';
+        b.style.background = c.bg;
+        b.style.color = c.text;
+        var circle = document.createElement('span');
+        circle.className = 'sev-circle';
+        circle.style.background = sevColor(s.severity);
+        circle.style.color = sevTextColor(s.severity);
+        circle.textContent = s.severity;
+        b.appendChild(document.createTextNode(s.tag));
+        b.appendChild(circle);
+        tags.appendChild(b);
+      });
+      e.meds.forEach(function(m){
+        var c = tagColor(m);
+        var b = document.createElement('span');
+        b.className = 'tag-badge';
+        b.style.background = c.bg;
+        b.style.color = c.text;
+        b.textContent = m;
+        tags.appendChild(b);
+      });
+      item.appendChild(tags);
+      if(e.memo || (e.memoTags && e.memoTags.length)){
+        var memoDiv = document.createElement('div');
+        memoDiv.className = 'entry-memo';
+        var tagsStr = (e.memoTags||[]).map(function(t){return '#'+t;}).join(' ');
+        memoDiv.textContent = [tagsStr, e.memo].filter(Boolean).join('  ');
+        item.appendChild(memoDiv);
+      }
+      item.classList.add('day-entry-item');
+      item.onclick = function(){ goToFormForEdit(e); };
+      el.appendChild(item);
+    });
+  }
+
+  // ---------- tag manager ----------
+  var dragState = { kind: null, name: null };
+
+  function renderTagMgr(){
+    ['symptom','med','memo'].forEach(function(kind){
+      var el = document.getElementById('tagmgr-' + kind);
+      el.innerHTML = '';
+      if(state.tags[kind].length === 0){
+        el.innerHTML = '<p class="empty-hint">まだタグがありません</p>';
+        return;
+      }
+      state.tags[kind].forEach(function(t, idx){
+        var c = tagColor(t.name);
+        var row = document.createElement('div');
+        row.className = 'tagmgr-row';
+        row.setAttribute('data-name', t.name);
+        if(dragState.kind === kind && dragState.name === t.name) row.classList.add('dragging');
+        var dot = document.createElement('span');
+        dot.className = 'tagmgr-dot';
+        dot.style.background = c.bg;
+        dot.style.border = '2px solid ' + c.text;
+        row.appendChild(dot);
+        var name = document.createElement('span');
+        name.className = 'tagmgr-name' + (t.hidden ? ' hidden-tag' : '');
+        name.textContent = t.name;
+        row.appendChild(name);
+        var vis = document.createElement('button');
+        vis.textContent = t.hidden ? '非表示' : '表示中';
+        vis.className = 'vis-toggle' + (t.hidden ? '' : ' toggle-on');
+        vis.onclick = function(){ toggleTagHidden(kind, idx); };
+        row.appendChild(vis);
+        var handle = document.createElement('span');
+        handle.className = 'drag-handle';
+        handle.textContent = '⠿';
+        row.appendChild(handle);
+        el.appendChild(row);
+      });
+    });
+  }
+  function toggleTagHidden(kind, idx){
+    state.tags[kind][idx].hidden = !state.tags[kind][idx].hidden;
+    saveTags();
+    renderTagMgr();
+    if(kind === 'symptom') renderSymptomDraft();
+    else if(kind === 'med') renderMedDraft();
+    else if(kind === 'memo') renderMemoTagDraft();
+  }
+
+  // ---------- drag to reorder (long-press then drag) ----------
+  function setupDragReorder(kind){
+    var container = document.getElementById('tagmgr-' + kind);
+    var LONG_PRESS_MS = 320;
+    var MOVE_CANCEL_PX = 8;
+    var longPressTimer = null;
+    var pointerId = null;
+    var dragging = false;
+    var startX = 0, startY = 0;
+    var dragName = null;
+
+    container.addEventListener('pointerdown', function(e){
+      var handle = e.target.closest('.drag-handle');
+      if(!handle) return;
+      var row = handle.closest('.tagmgr-row');
+      if(!row) return;
+      pointerId = e.pointerId;
+      startX = e.clientX;
+      startY = e.clientY;
+      dragName = row.getAttribute('data-name');
+      longPressTimer = setTimeout(function(){
+        dragging = true;
+        dragState = { kind: kind, name: dragName };
+        row.classList.add('dragging');
+        try{ row.setPointerCapture(pointerId); }catch(err){}
+      }, LONG_PRESS_MS);
+    });
+
+    container.addEventListener('pointermove', function(e){
+      if(pointerId === null || e.pointerId !== pointerId) return;
+      if(!dragging){
+        if(Math.abs(e.clientY - startY) > MOVE_CANCEL_PX || Math.abs(e.clientX - startX) > MOVE_CANCEL_PX){
+          clearTimeout(longPressTimer);
+        }
+        return;
+      }
+      e.preventDefault();
+      var rows = Array.prototype.slice.call(container.querySelectorAll('.tagmgr-row'));
+      var arr = state.tags[kind];
+      var dragIdx = arr.findIndex(function(t){ return t.name === dragName; });
+      if(dragIdx === -1) return;
+      for(var i=0; i<rows.length; i++){
+        var r = rows[i];
+        var rName = r.getAttribute('data-name');
+        if(rName === dragName) continue;
+        var rect = r.getBoundingClientRect();
+        if(e.clientY > rect.top && e.clientY < rect.bottom){
+          var targetIdx = arr.findIndex(function(t){ return t.name === rName; });
+          if(targetIdx === -1) continue;
+          var moved = arr.splice(dragIdx, 1)[0];
+          arr.splice(targetIdx, 0, moved);
+          renderTagMgr();
+          break;
+        }
+      }
+    });
+
+    function endDrag(e){
+      if(pointerId === null || (e && e.pointerId !== pointerId)) return;
+      clearTimeout(longPressTimer);
+      if(dragging){
+        saveTags();
+        if(kind === 'symptom') renderSymptomDraft();
+        else if(kind === 'med') renderMedDraft();
+        else if(kind === 'memo') renderMemoTagDraft();
+      }
+      dragging = false;
+      pointerId = null;
+      dragName = null;
+      dragState = { kind: null, name: null };
+      renderTagMgr();
+    }
+    container.addEventListener('pointerup', endDrag);
+    container.addEventListener('pointercancel', endDrag);
+  }
+  ['symptom','med','memo'].forEach(setupDragReorder);
+
+  // ---------- calendar (record tab) ----------
+  var calYear, calMonth;
+  var calSelectedDate = todayStr();
+
+  function initCalendarState(){
+    var t = dateFromStr(todayStr());
+    calYear = t.getFullYear();
+    calMonth = t.getMonth();
+  }
+
+  function entriesForDate(dateStr){
+    return state.entries.filter(function(e){ return e.date === dateStr; });
+  }
+
+  function renderCalendar(){
+    document.getElementById('cal-month-label').textContent = calYear + '年' + (calMonth + 1) + '月';
+    var grid = document.getElementById('cal-grid');
+    grid.innerHTML = '';
+
+    var firstOfMonth = new Date(calYear, calMonth, 1);
+    var startWeekday = firstOfMonth.getDay();
+    var daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    var prevDaysInMonth = new Date(calYear, calMonth, 0).getDate();
+    var todayS = todayStr();
+
+    var cells = [];
+    for(var i = 0; i < startWeekday; i++){
+      var dnum = prevDaysInMonth - startWeekday + 1 + i;
+      var d = new Date(calYear, calMonth - 1, dnum);
+      cells.push({ date: fmtDateStr(d), dnum: dnum, otherMonth: true });
+    }
+    for(var day = 1; day <= daysInMonth; day++){
+      var d2 = new Date(calYear, calMonth, day);
+      cells.push({ date: fmtDateStr(d2), dnum: day, otherMonth: false });
+    }
+    var remain = (7 - (cells.length % 7)) % 7;
+    for(var j = 1; j <= remain; j++){
+      var d3 = new Date(calYear, calMonth + 1, j);
+      cells.push({ date: fmtDateStr(d3), dnum: j, otherMonth: true });
+    }
+
+    cells.forEach(function(c){
+      var cell = document.createElement('div');
+      cell.className = 'cal-day'
+        + (c.otherMonth ? ' other-month' : '')
+        + (c.date === todayS ? ' today' : '')
+        + (c.date === calSelectedDate ? ' selected' : '');
+      var num = document.createElement('span');
+      num.className = 'daynum';
+      num.textContent = c.dnum;
+      cell.appendChild(num);
+
+      var dayEntries = entriesForDate(c.date);
+      if(dayEntries.length){
+        var dots = document.createElement('span');
+        dots.className = 'cal-dots';
+        var seenColors = [];
+        dayEntries.forEach(function(e){
+          var col;
+          if(e.symptoms.length){
+            var maxSev = e.symptoms.reduce(function(m,s){ return Math.max(m, s.severity); }, 0);
+            col = sevColor(maxSev);
+          } else {
+            col = '#8a7ab0';
+          }
+          if(seenColors.indexOf(col) === -1 && seenColors.length < 3) seenColors.push(col);
+        });
+        seenColors.forEach(function(col){
+          var i2 = document.createElement('i');
+          i2.style.background = col;
+          dots.appendChild(i2);
+        });
+        cell.appendChild(dots);
+      }
+
+      cell.onclick = (function(dateStr){
+        return function(){
+          calSelectedDate = dateStr;
+          renderCalendar();
+        };
+      })(c.date);
+
+      grid.appendChild(cell);
+    });
+
+    renderDayList();
+  }
+
+  function renderDayList(){
+    document.getElementById('cal-selected-label').textContent = calSelectedDate;
+    var list = document.getElementById('cal-day-list');
+    var entries = entriesForDate(calSelectedDate).slice().sort(function(a,b){
+      var av = a.date + ' ' + (a.time||'');
+      var bv = b.date + ' ' + (b.time||'');
+      return av < bv ? -1 : (av > bv ? 1 : 0);
+    });
+    list.innerHTML = '';
+    if(entries.length === 0){
+      list.innerHTML = '<div class="empty">この日の記録はありません</div>';
+      return;
+    }
+    entries.forEach(function(e){
+      var item = document.createElement('div');
+      item.className = 'entry-item day-entry-item';
+      var top = document.createElement('div');
+      top.className = 'entry-top';
+      top.innerHTML = '<span class="entry-date">'+e.date+'</span><span class="entry-time">'+(e.time||'')+'</span>';
+      item.appendChild(top);
+      var tags = document.createElement('div');
+      tags.className = 'entry-tags';
+      e.symptoms.forEach(function(s){
+        var c = tagColor(s.tag);
+        var b = document.createElement('span');
+        b.className = 'tag-badge';
+        b.style.background = c.bg;
+        b.style.color = c.text;
+        var circle = document.createElement('span');
+        circle.className = 'sev-circle';
+        circle.style.background = sevColor(s.severity);
+        circle.style.color = sevTextColor(s.severity);
+        circle.textContent = s.severity;
+        b.appendChild(document.createTextNode(s.tag));
+        b.appendChild(circle);
+        tags.appendChild(b);
+      });
+      e.meds.forEach(function(m){
+        var c = tagColor(m);
+        var b = document.createElement('span');
+        b.className = 'tag-badge';
+        b.style.background = c.bg;
+        b.style.color = c.text;
+        b.textContent = m;
+        tags.appendChild(b);
+      });
+      item.appendChild(tags);
+      if(e.memo || (e.memoTags && e.memoTags.length)){
+        var memoDiv = document.createElement('div');
+        memoDiv.className = 'entry-memo';
+        var tagsStr = (e.memoTags||[]).map(function(t){ return '#'+t; }).join(' ');
+        memoDiv.textContent = [tagsStr, e.memo].filter(Boolean).join('  ');
+        item.appendChild(memoDiv);
+      }
+      item.onclick = function(){ goToFormForEdit(e); };
+      list.appendChild(item);
+    });
+  }
+
+  function goToForm(dateStr){
+    setFormDate(dateStr);
+    setCurrentTime();
+    clearFormFields();
+    syncEditingFromTime();
+    document.getElementById('record-calendar').style.display = 'none';
+    document.getElementById('record-form').style.display = 'block';
+    document.getElementById('record-bar').classList.remove('show');
+    document.getElementById('save-bar').classList.add('show');
+  }
+  function goToFormForEdit(entry){
+    document.querySelectorAll('.tab-btn').forEach(function(btn){ btn.classList.toggle('active', btn.getAttribute('data-view') === 'record'); });
+    document.querySelectorAll('.view').forEach(function(view){ view.classList.toggle('active', view.id === 'view-record'); });
+    document.getElementById('record-bar').classList.remove('show');
+    document.getElementById('save-bar').classList.add('show');
+    setFormDate(entry.date);
+    var parts = (entry.time || '00:00').split(':');
+    document.getElementById('in-hour').value = parts[0];
+    document.getElementById('in-minute').value = parts[1];
+    loadEntryIntoDraft(entry);
+    document.getElementById('record-calendar').style.display = 'none';
+    document.getElementById('record-form').style.display = 'block';
+    document.getElementById('record-bar').classList.remove('show');
+    document.getElementById('save-bar').classList.add('show');
+  }
+  function backToCalendar(){
+    document.getElementById('record-form').style.display = 'block';
+    document.getElementById('record-calendar').style.display = 'none';
+    document.getElementById('save-bar').classList.add('show');
+    document.getElementById('record-bar').classList.remove('show');
+    resetDraft();
+  }
+  document.getElementById('cal-prev').onclick = function(){
+    calMonth--; if(calMonth < 0){ calMonth = 11; calYear--; }
+    renderCalendar();
+  };
+  document.getElementById('cal-next').onclick = function(){
+    calMonth++; if(calMonth > 11){ calMonth = 0; calYear++; }
+    renderCalendar();
+  };
+  document.getElementById('cal-today').onclick = function(){
+    var t = dateFromStr(todayStr());
+    calYear = t.getFullYear();
+    calMonth = t.getMonth();
+    calSelectedDate = todayStr();
+    renderCalendar();
+  };
+  document.getElementById('btn-goto-form').onclick = function(){
+    goToForm(calSelectedDate);
+  };
+
+  // ---------- tabs ----------
+  document.querySelectorAll('.tab-btn').forEach(function(btn){
+    btn.onclick = function(){
+      document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      var view = btn.getAttribute('data-view');
+      document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+      document.getElementById('view-' + view).classList.add('active');
+      if(view === 'record'){
+        backToCalendar();
+      } else {
+        document.getElementById('save-bar').classList.remove('show');
+        document.getElementById('record-bar').classList.remove('show');
+      }
+      if(view === 'stats'){ renderStats(); }
+      if(view === 'tagmgr'){ renderTagMgr(); }
+    };
+  });
+
+  // ---------- stats ----------
+  var chartSymptom = null, chartMed = null;
+  var symptomChartMode = 'daily';
+  var medChartMode = 'daily';
+  var metricMode = 'severity';
+  var recentSortOrder = 'desc';
+
+  document.querySelectorAll('[data-recent-sort]').forEach(function(button){
+    button.onclick = function(){
+      recentSortOrder = button.getAttribute('data-recent-sort');
+      renderRecent(filteredEntries());
+    };
+  });
+
+  document.querySelectorAll('[data-timeline-action]').forEach(function(btn){
+    btn.onclick = function(){
+      var action = btn.getAttribute('data-timeline-action');
+      if(action === 'symptom-state'){
+        metricMode = 'severity';
+        symptomChartMode = 'daily';
+        document.querySelector('[data-timeline-action="symptom-state"]').classList.add('active');
+        document.querySelector('[data-timeline-action="symptom-count-daily"]').classList.remove('active');
+        document.querySelector('[data-timeline-action="symptom-count-cumulative"]').classList.remove('active');
+      } else if(action === 'symptom-count-daily'){
+        metricMode = 'count';
+        symptomChartMode = 'daily';
+        document.querySelector('[data-timeline-action="symptom-state"]').classList.remove('active');
+        document.querySelector('[data-timeline-action="symptom-count-daily"]').classList.add('active');
+        document.querySelector('[data-timeline-action="symptom-count-cumulative"]').classList.remove('active');
+      } else if(action === 'symptom-count-cumulative'){
+        metricMode = 'count';
+        symptomChartMode = 'cumulative';
+        document.querySelector('[data-timeline-action="symptom-state"]').classList.remove('active');
+        document.querySelector('[data-timeline-action="symptom-count-daily"]').classList.remove('active');
+        document.querySelector('[data-timeline-action="symptom-count-cumulative"]').classList.add('active');
+      } else if(action === 'med-daily'){
+        medChartMode = 'daily';
+        document.querySelector('[data-timeline-action="med-daily"]').classList.add('active');
+        document.querySelector('[data-timeline-action="med-cumulative"]').classList.remove('active');
+      } else if(action === 'med-cumulative'){
+        medChartMode = 'cumulative';
+        document.querySelector('[data-timeline-action="med-daily"]').classList.remove('active');
+        document.querySelector('[data-timeline-action="med-cumulative"]').classList.add('active');
+      }
+      renderStats();
+    };
+  });
+
+  document.querySelectorAll('.quick-range button').forEach(function(btn){
+    btn.onclick = function(){
+      document.querySelectorAll('.quick-range button').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      var days = parseInt(btn.getAttribute('data-days'), 10);
+      var endStr = todayStr();
+      document.getElementById('range-end').value = endStr;
+      if(days === 0){
+        var earliest = state.entries.reduce(function(min, e){ return (!min || e.date < min) ? e.date : min; }, null);
+        document.getElementById('range-start').value = earliest || endStr;
+      } else {
+        var start = new Date();
+        start.setDate(start.getDate() - (days - 1));
+        document.getElementById('range-start').value = start.getFullYear()+'-'+String(start.getMonth()+1).padStart(2,'0')+'-'+String(start.getDate()).padStart(2,'0');
+      }
+      document.querySelector('.quick-range').classList.remove('custom-period');
+      renderStats();
+    };
+  });
+
+  function updateQuickRangeState(){
+    var start = document.getElementById('range-start').value;
+    var end = document.getElementById('range-end').value;
+    var today = todayStr();
+    var earliest = state.entries.reduce(function(min, e){ return (!min || e.date < min) ? e.date : min; }, null);
+    var ranges = {
+      'btn-range-today': { start: today, end: today },
+      'btn-range-30': { start: fmtDateStr(new Date(new Date().setDate(new Date().getDate() - 29))), end: today },
+      'btn-range-all': { start: earliest || today, end: today }
+    };
+    var sevenStart = new Date();
+    sevenStart.setDate(sevenStart.getDate() - 6);
+    ranges['btn-range-7'] = { start: fmtDateStr(sevenStart), end: today };
+    var matched = null;
+    document.querySelectorAll('.quick-range button').forEach(function(btn){
+      var range = ranges[btn.id];
+      if(!range && btn.getAttribute('data-days') === '7') range = ranges['btn-range-7'];
+      var isMatch = !!range && range.start === start && range.end === end;
+      btn.classList.toggle('active', isMatch);
+      if(isMatch) matched = btn;
+    });
+    document.querySelector('.quick-range').classList.toggle('custom-period', !matched);
+  }
+
+  document.getElementById('range-start').addEventListener('change', function(){
+    document.querySelectorAll('.quick-range button').forEach(function(btn){ btn.classList.remove('active'); });
+    document.querySelector('.quick-range').classList.add('custom-period');
+    renderStats();
+  });
+  document.getElementById('range-end').addEventListener('change', function(){
+    document.querySelectorAll('.quick-range button').forEach(function(btn){ btn.classList.remove('active'); });
+    document.querySelector('.quick-range').classList.add('custom-period');
+    renderStats();
+  });
+
+  document.querySelectorAll('.date-picker-btn').forEach(function(btn){
+    btn.onclick = function(){
+      var input = document.getElementById(btn.getAttribute('data-date-target'));
+      if(input && typeof input.showPicker === 'function') input.showPicker();
+      else if(input) input.focus();
+    };
+  });
+  document.getElementById('in-date').addEventListener('change', function(){
+    syncEditingFromTime();
+  });
+  document.getElementById('btn-now').onclick = function(){
+    setFormDate(todayStr());
+    setCurrentTime();
+    syncEditingFromTime();
+    updateSaveButtonLabel();
+  };
+  document.querySelectorAll('.date-input-wrap input[type="date"]').forEach(function(input){
+    input.addEventListener('click', function(){
+      if(typeof input.showPicker === 'function') input.showPicker();
+    });
+  });
+
+  function filteredEntries(){
+    var start = document.getElementById('range-start').value;
+    var end = document.getElementById('range-end').value;
+    return state.entries.filter(function(e){
+      if(start && e.date < start) return false;
+      if(end && e.date > end) return false;
+      return true;
+    }).sort(function(a,b){ return a.date < b.date ? -1 : (a.date > b.date ? 1 : 0); });
+  }
+
+  function renderStats(){
+    var entries = filteredEntries();
+    var symptomStats = {};
+    var medStats = {};
+    entries.forEach(function(e){
+      e.symptoms.forEach(function(s){
+        if(!symptomStats[s.tag]) symptomStats[s.tag] = { count: 0, severitySum: 0 };
+        symptomStats[s.tag].count++;
+        symptomStats[s.tag].severitySum += s.severity;
+      });
+      e.meds.forEach(function(m){ medStats[m] = (medStats[m] || 0) + 1; });
+    });
+
+    var summary = document.getElementById('stat-summary');
+    summary.innerHTML = '';
+    var symptomNames = Object.keys(symptomStats);
+    var medNames = Object.keys(medStats);
+    if(entries.length === 0){
+      summary.innerHTML = '<div class="empty">この期間の集計データがありません</div>';
+    } else {
+      var totalBox = document.createElement('div');
+      totalBox.className = 'stat-box';
+      totalBox.innerHTML = '<div class="num">' + entries.length + '回</div><div class="lbl">記録件数</div>';
+      summary.appendChild(totalBox);
+      symptomNames.forEach(function(tag){
+        var stat = symptomStats[tag];
+        var box = document.createElement('div');
+        box.className = 'stat-box';
+        box.innerHTML = '<div class="num">' + stat.count + '回 / ' + (stat.severitySum / stat.count).toFixed(1) + '</div><div class="lbl">体調：' + escapeHtml(tag) + '</div>';
+        summary.appendChild(box);
+      });
+      medNames.forEach(function(tag){
+        var medBox = document.createElement('div');
+        medBox.className = 'stat-box';
+        medBox.innerHTML = '<div class="num">' + medStats[tag] + '回</div><div class="lbl">服薬：' + escapeHtml(tag) + '</div>';
+        summary.appendChild(medBox);
+      });
+    }
+
+    renderTimelineCharts(entries);
+    renderRecent(entries);
+  }
+
+  // ---------- timeline bucketing ----------
+  function pad2(n){ return String(n).padStart(2,'0'); }
+  function dateFromStr(s){
+    var p = s.split('-');
+    return new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10));
+  }
+  function fmtDateStr(d){ return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+
+  function buildBuckets(){
+    var startStr = document.getElementById('range-start').value || todayStr();
+    var endStr = document.getElementById('range-end').value || todayStr();
+    var startD = dateFromStr(startStr);
+    var endD = dateFromStr(endStr);
+    var diffDays = Math.round((endD - startD) / 86400000) + 1;
+
+    if(diffDays <= 1){
+      var buckets = [];
+      for(var h=0; h<24; h++){
+        buckets.push({ label: h + '時', match: function(e, hh){ return e.date === startStr && parseInt((e.time||'0:0').split(':')[0],10) === hh; }.bind(null) });
+      }
+      var out = [];
+      for(var h2=0; h2<24; h2++){
+        (function(hh){
+          out.push({ label: hh + '時', match: function(e){ return e.date === startStr && parseInt((e.time||'0:0').split(':')[0],10) === hh; } });
+        })(h2);
+      }
+      return { granularity: 'hour', buckets: out, caption: startStr + '（1時間単位）' };
+    } else if(diffDays <= 60){
+      var out2 = [];
+      for(var i=0; i<diffDays; i++){
+        (function(idx){
+          var d = new Date(startD); d.setDate(d.getDate() + idx);
+          var dStr = fmtDateStr(d);
+          out2.push({ label: (d.getMonth()+1) + '/' + d.getDate(), match: function(e){ return e.date === dStr; } });
+        })(i);
+      }
+      return { granularity: 'day', buckets: out2, caption: startStr + ' 〜 ' + endStr + '（日単位）' };
+    } else {
+        (function(wStart){
+          var wEnd = new Date(wStart); wEnd.setDate(wEnd.getDate() + 6);
+          var wStartStr = fmtDateStr(wStart);
+          var wEndStr = fmtDateStr(wEnd < endD ? wEnd : endD);
+          out3.push({ label: (wStart.getMonth()+1) + '/' + wStart.getDate() + '週', match: function(e){ return e.date >= wStartStr && e.date <= wEndStr; } });
+        })(new Date(weekStart));
+        weekStart.setDate(weekStart.getDate() + 7);
+      }
+
+      function validateSupabaseConfig(url, key){
+        if(!url && !key) return 'Project URLとAPI Keyを入力してください。';
+      return { granularity: 'week', buckets: out3, caption: startStr + ' 〜 ' + endStr + '（週単位）' };
+    }
+  }
+
+  function destroyCharts(){
+    if(chartSymptom){ chartSymptom.destroy(); chartSymptom = null; }
+    if(chartMed){ chartMed.destroy(); chartMed = null; }
+  }
+
+  function hideHeatmapTooltip(){
+    var tooltip = document.getElementById('heatmap-tooltip');
+    if(tooltip) tooltip.remove();
+  }
+
+  function showHeatmapTooltip(cell, text){
+    hideHeatmapTooltip();
+    var tooltip = document.createElement('div');
+    tooltip.id = 'heatmap-tooltip';
+    tooltip.className = 'heatmap-tooltip';
+    tooltip.textContent = text;
+    document.body.appendChild(tooltip);
+
+    var rect = cell.getBoundingClientRect();
+    var tooltipRect = tooltip.getBoundingClientRect();
+    var left = Math.max(12, Math.min(rect.left + (rect.width - tooltipRect.width) / 2, window.innerWidth - tooltipRect.width - 12));
+    var top = rect.bottom + 7;
+    if(top + tooltipRect.height > window.innerHeight - 12) top = rect.top - tooltipRect.height - 7;
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = Math.max(12, top) + 'px';
+  }
+
+  document.addEventListener('click', function(e){
+    if(!e.target.closest('.heatmap-table td')) hideHeatmapTooltip();
+  });
+
+  function renderHeatmap(entries, buckets, targetId, metric, mode){
+    var wrap = document.getElementById(targetId).parentElement;
+    var isSymptom = targetId === 'chart-symptom';
+    var tags = [];
+    entries.forEach(function(e){
+      var values = isSymptom ? e.symptoms.map(function(s){ return { tag: s.tag, severity: s.severity }; }) : e.meds.map(function(tag){ return { tag: tag }; });
+      values.forEach(function(value){
+        if(tags.indexOf(value.tag) === -1) tags.push(value.tag);
+      });
+    });
+    if(tags.length === 0){
+      wrap.innerHTML = '<div class="empty">' + (isSymptom ? '体調' : '服薬') + 'データがありません</div>';
+      return;
+    }
+
+    var table = document.createElement('table');
+    table.className = 'heatmap-table' + (buckets.length > 12 ? ' heatmap-dense' : '');
+    var labelStep = Math.max(1, Math.ceil(buckets.length / 12));
+    var head = document.createElement('tr');
+    var tagHead = document.createElement('th');
+    tagHead.textContent = 'タグ';
+    head.appendChild(tagHead);
+    buckets.forEach(function(bucket, bucketIndex){
+      var th = document.createElement('th');
+      var showLabel = bucketIndex % labelStep === 0 || bucketIndex === buckets.length - 1;
+      var label = document.createElement('span');
+      label.textContent = showLabel ? bucket.label : '';
+      th.appendChild(label);
+      th.title = bucket.label;
+      head.appendChild(th);
+    });
+    table.appendChild(head);
+
+    tags.forEach(function(tag){
+      var row = document.createElement('tr');
+      var tagCell = document.createElement('td');
+      tagCell.className = 'heatmap-tag';
+      tagCell.textContent = tag;
+      tagCell.title = tag;
+      row.appendChild(tagCell);
+      buckets.forEach(function(bucket){
+        var count = 0;
+        var severitySum = 0;
+        entries.forEach(function(e){
+          var matchesBucket = mode === 'cumulative'
+            ? buckets.slice(0, bucketIndex + 1).some(function(previousBucket){ return previousBucket.match(e); })
+            : bucket.match(e);
+          if(!matchesBucket) return;
+          var values = isSymptom ? e.symptoms : e.meds.map(function(m){ return { tag: m }; });
+          values.forEach(function(value){
+            if(value.tag === tag){
+              count++;
+              if(isSymptom) severitySum += value.severity;
+            }
+          });
+        });
+        var cell = document.createElement('td');
+        if(count === 0){
+          cell.className = 'heatmap-empty';
+          cell.textContent = '';
+          cell.setAttribute('aria-label', tag + ' ' + bucket.label + ': データなし');
+          cell.title = tag + ' ' + bucket.label + ': データなし';
+        } else {
+          var value = metric === 'severity' ? severitySum / count : count;
+          var rounded = Math.round(value * 10) / 10;
+          cell.style.background = heatmapColor(value);
+          cell.textContent = '';
+          var valueLabel = metric === 'severity' ? '平均状態 ' + rounded.toFixed(1) : '回数 ' + count;
+          cell.setAttribute('aria-label', tag + ' ' + bucket.label + ': ' + valueLabel);
+          cell.title = tag + ' ' + bucket.label + ': ' + valueLabel;
+          cell.onclick = function(e){
+            e.stopPropagation();
+            showHeatmapTooltip(cell, cell.title);
+          };
+        }
+        row.appendChild(cell);
+      });
+      table.appendChild(row);
+    });
+
+    wrap.innerHTML = '';
+    wrap.classList.add('heatmap-wrap');
+    wrap.appendChild(table);
+    var legend = document.createElement('div');
+    legend.className = 'heatmap-legend';
+    legend.textContent = metric === 'severity' ? '平均状態' : '回数';
+    var bar = document.createElement('span');
+    bar.className = 'heatmap-legend-bar';
+    bar.setAttribute('aria-label', (metric === 'severity' ? '状態' : '回数') + '1から4');
+    [1, 2, 3, 4].forEach(function(level){
+      var swatch = document.createElement('i');
+      swatch.style.background = sevColor(level);
+      swatch.title = (metric === 'severity' ? '状態 ' : '回数 ') + level;
+      bar.appendChild(swatch);
+    });
+    legend.appendChild(bar);
+    [1, 2, 3, 4].forEach(function(level){
+      var label = document.createElement('span');
+      label.textContent = level;
+      legend.appendChild(label);
+    });
+    wrap.appendChild(legend);
+  }
+
+  function renderTimelineCharts(entries){
+    var bucketInfo = buildBuckets();
+    var buckets = bucketInfo.buckets;
+    var labels = buckets.map(function(b){ return b.label; });
+    document.getElementById('timeline-caption').textContent = bucketInfo.caption;
+    document.querySelectorAll('#view-stats .timeline-sub-label')[0].textContent = metricMode === 'severity' ? '体調（タグ別の平均状態）' : '体調（タグ別の回数）';
+
+    destroyCharts();
+    if(typeof Chart === 'undefined'){
+      ['chart-symptom','chart-med'].forEach(function(id){
+        document.getElementById(id).parentElement.innerHTML = '<div class="empty">グラフの読み込みに失敗しました</div>';
+      });
+      return;
+    }
+    if(entries.length === 0){
+      ['chart-symptom','chart-med'].forEach(function(id){
+        document.getElementById(id).parentElement.innerHTML = '<div class="empty">データがありません</div>';
+      });
+      return;
+    }
+
+    var timelineWraps = document.querySelectorAll('#view-stats .timeline-sub .chart-wrap');
+    if(!document.getElementById('chart-symptom')){
+      timelineWraps[0].classList.remove('heatmap-wrap');
+      timelineWraps[0].innerHTML = '<canvas id="chart-symptom"></canvas>';
+    }
+    if(!document.getElementById('chart-med')){
+      timelineWraps[1].innerHTML = '<canvas id="chart-med"></canvas>';
+    }
+
+    var chartGridColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-grid').trim();
+    var chartAxisColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-axis').trim();
+
+    // ---- tag counts: daily values or cumulative values ----
+    var symptomTags = [];
+    entries.forEach(function(e){ e.symptoms.forEach(function(s){ if(symptomTags.indexOf(s.tag) === -1) symptomTags.push(s.tag); }); });
+    var symptomDatasets = symptomTags.map(function(tag){
+      var color = tagColor(tag).bg;
+      var data = buckets.map(function(b){
+        var count = 0;
+        var severitySum = 0;
+        entries.forEach(function(e){
+          if(!b.match(e)) return;
+          e.symptoms.forEach(function(s){
+            if(s.tag === tag){
+              count++;
+              severitySum += s.severity;
+            }
+          });
+        });
+        return metricMode === 'severity' && count ? severitySum / count : count;
+      });
+      if(symptomChartMode === 'cumulative' && metricMode !== 'severity'){
+        data = data.map(function(value, index){
+          return data.slice(0, index + 1).reduce(function(sum, current){ return sum + current; }, 0);
+        });
+      }
+      return {
+        label: tag,
+        data: data,
+        borderColor: color,
+        backgroundColor: color,
+        pointBackgroundColor: color,
+        pointRadius: 3,
+        borderWidth: 2,
+        fill: false,
+        tension: 0.2
+      };
+    });
+    var useSymptomLineChart = metricMode === 'count' && symptomChartMode === 'cumulative';
+    if(useSymptomLineChart){
+      var symptomCanvasWrap = document.getElementById('chart-symptom').parentElement;
+      symptomCanvasWrap.classList.remove('heatmap-wrap');
+      symptomCanvasWrap.innerHTML = '<canvas id="chart-symptom"></canvas>';
+    } else {
+      renderHeatmap(entries, buckets, 'chart-symptom', metricMode, symptomChartMode);
+    }
+
+    var symptomMax = symptomDatasets.reduce(function(max, dataset){
+      return Math.max(max, dataset.data.reduce(function(datasetMax, value){ return Math.max(datasetMax, value || 0); }, 0));
+    }, 0);
+    var symptomYMax = Math.max(1, Math.ceil(symptomMax) + 1);
+    if(useSymptomLineChart){
+      var ctxS = document.getElementById('chart-symptom').getContext('2d');
+      chartSymptom = new Chart(ctxS, {
+      type: 'line',
+      data: { labels: labels, datasets: symptomDatasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: symptomDatasets.length > 0, position: 'bottom', labels: { boxWidth: 10, font: { size: 10.5 } } } },
+        scales: {
+          y: { min: 0, max: symptomYMax, ticks: { stepSize: 1, color: chartAxisColor, font: { size: 10.5 } }, grid: { color: chartGridColor }, border: { color: chartAxisColor } },
+          x: { ticks: { color: chartAxisColor, font: { size: 9.5 }, maxRotation: 60, minRotation: 0, autoSkip: true, maxTicksLimit: 12 }, grid: { color: chartGridColor }, border: { color: chartAxisColor } }
+        }
+      }
+      });
+    }
+
+    // ---- medication: line per tag ----
+    var medTags = [];
+    entries.forEach(function(e){ e.meds.forEach(function(m){ if(medTags.indexOf(m) === -1) medTags.push(m); }); });
+    var medDatasets = medTags.map(function(tag){
+      var color = tagColor(tag).bg;
+      var data = buckets.map(function(b){
+        var count = 0;
+        entries.forEach(function(e){
+          if(!b.match(e)) return;
+          if(e.meds.indexOf(tag) !== -1) count++;
+        });
+        return count;
+      });
+      if(medChartMode === 'cumulative'){
+        data = data.map(function(value, index){
+          return data.slice(0, index + 1).reduce(function(sum, current){ return sum + current; }, 0);
+        });
+      }
+      return { label: tag, data: data, borderColor: color, backgroundColor: color, pointBackgroundColor: color, pointRadius: 3, borderWidth: 2, fill: false, tension: 0.2 };
+    });
+    var medMax = medDatasets.reduce(function(max, dataset){
+      return Math.max(max, dataset.data.reduce(function(datasetMax, value){ return Math.max(datasetMax, value || 0); }, 0));
+    }, 0);
+    var medYMax = Math.max(1, Math.ceil(medMax) + 1);
+    var useMedLineChart = medChartMode === 'cumulative';
+    if(!useMedLineChart){
+      renderHeatmap(entries, buckets, 'chart-med', 'count');
+      return;
+    }
+    var ctxM = document.getElementById('chart-med').getContext('2d');
+    chartMed = new Chart(ctxM, {
+      type: 'line',
+      data: { labels: labels, datasets: medDatasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: medDatasets.length > 0, position: 'bottom', labels: { boxWidth: 10, font: { size: 10.5 } } } },
+        scales: {
+          y: { min: 0, max: medYMax, ticks: { stepSize: 1, color: chartAxisColor, font: { size: 10.5 } }, grid: { color: chartGridColor }, border: { color: chartAxisColor } },
+          x: { ticks: { color: chartAxisColor, font: { size: 9.5 }, maxRotation: 60, minRotation: 0, autoSkip: true, maxTicksLimit: 12 }, grid: { color: chartGridColor }, border: { color: chartAxisColor } }
+        }
+      }
+    });
+  }
+
+  function showDetail(title, entries){
+    document.getElementById('detail-title').textContent = title + '（' + entries.length + '件）';
+    var body = document.getElementById('detail-body');
+    body.innerHTML = '';
+    entries.slice().sort(function(a,b){ return b.createdAt - a.createdAt; }).forEach(function(e){
+      var item = document.createElement('div');
+      item.className = 'entry-item';
+      var top = document.createElement('div');
+      top.className = 'entry-top';
+      top.innerHTML = '<span class="entry-date">'+e.date+'</span><span class="entry-time">'+(e.time||'')+'</span>';
+      item.appendChild(top);
+      var tags = document.createElement('div');
+      tags.className = 'entry-tags';
+      e.symptoms.forEach(function(s){
+        var c = tagColor(s.tag);
+        var b = document.createElement('span');
+        b.className = 'tag-badge';
+        b.style.background = c.bg;
+        b.style.color = c.text;
+        var circle = document.createElement('span');
+        circle.className = 'sev-circle';
+        circle.style.background = sevColor(s.severity);
+        circle.style.color = sevTextColor(s.severity);
+        circle.textContent = s.severity;
+        b.appendChild(document.createTextNode(s.tag));
+        b.appendChild(circle);
+        tags.appendChild(b);
+      });
+      e.meds.forEach(function(m){
+        var c = tagColor(m);
+        var b = document.createElement('span');
+        b.className = 'tag-badge';
+        b.style.background = c.bg;
+        b.style.color = c.text;
+        b.textContent = m;
+        tags.appendChild(b);
+      });
+      item.appendChild(tags);
+      if(e.memo || (e.memoTags && e.memoTags.length)){
+        var memoDiv = document.createElement('div');
+        memoDiv.className = 'entry-memo';
+        var tagsStr = (e.memoTags||[]).map(function(t){return '#'+t;}).join(' ');
+        memoDiv.textContent = [tagsStr, e.memo].filter(Boolean).join('  ');
+        item.appendChild(memoDiv);
+      }
+      body.appendChild(item);
+    });
+    document.getElementById('detail-overlay').classList.add('active');
+  }
+  document.getElementById('detail-close').onclick = function(){
+    document.getElementById('detail-overlay').classList.remove('active');
+  };
+  document.getElementById('detail-overlay').onclick = function(e){
+    if(e.target === document.getElementById('detail-overlay')){
+      document.getElementById('detail-overlay').classList.remove('active');
+    }
+  };
+
+  // ---------- sample data ----------
+  document.getElementById('btn-add-sample').onclick = async function(){
+    var symptomPool = ['頭痛','めまい','吐き気'];
+    var medPool = ['ロキソニン','頭痛薬A'];
+    var memoPool = [
+      { tags: ['天気'], text: '台風接近中、気圧が下がっていた' },
+      { tags: ['睡眠不足'], text: '前日の睡眠が4時間程度だった' },
+      { tags: ['生理'], text: '生理2日目' },
+      { tags: [], text: '' },
+      { tags: ['天気','睡眠不足'], text: '寝不足に加えて雨予報' }
+    ];
+    var timesOfDay = ['07:20','09:40','13:10','15:30','19:50','21:00'];
+
+    var newEntries = [];
+    for(var d = 29; d >= 0; d--){
+      var day = new Date();
+      day.setDate(day.getDate() - d);
+      var dateStr = day.getFullYear()+'-'+pad2(day.getMonth()+1)+'-'+pad2(day.getDate());
+
+      var entryCount = 1 + Math.floor(Math.random() * 6);
+      var dayTimes = timesOfDay.slice();
+      for(var t = dayTimes.length - 1; t > 0; t--){
+        var swapAt = Math.floor(Math.random() * (t + 1));
+        var tmp = dayTimes[t]; dayTimes[t] = dayTimes[swapAt]; dayTimes[swapAt] = tmp;
+      }
+      for(var n = 0; n < entryCount; n++){
+        var symCount = 1 + Math.floor(Math.random()*2);
+        var symptoms = [];
+        var usedTags = [];
+        for(var s = 0; s < symCount; s++){
+          var tag = symptomPool[Math.floor(Math.random()*symptomPool.length)];
+          if(usedTags.indexOf(tag) !== -1) continue;
+          usedTags.push(tag);
+          symptoms.push({ tag: tag, severity: 1 + Math.floor(Math.random()*4) });
+        }
+        var meds = Math.random() > 0.4 ? [medPool[Math.floor(Math.random()*medPool.length)]] : [];
+        var memoPick = memoPool[Math.floor(Math.random()*memoPool.length)];
+        var time = dayTimes[n];
+
+        newEntries.push({
+          id: uid(),
+          date: dateStr,
+          time: time,
+          symptoms: symptoms,
+          meds: meds,
+          memo: memoPick.text,
+          memoTags: memoPick.tags,
+          createdAt: day.getTime() + n
+        });
+      }
+    }
+
+    newEntries.forEach(function(e){
+      e.symptoms.forEach(function(s){ addKnownTagSilent('symptom', s.tag); });
+      e.meds.forEach(function(m){ addKnownTagSilent('med', m); });
+      (e.memoTags||[]).forEach(function(t){ addKnownTagSilent('memo', t); });
+    });
+    state.entries = state.entries.concat(newEntries);
+
+    await saveEntries();
+    await saveTags();
+    renderSymptomDraft();
+    renderMedDraft();
+    renderMemoTagDraft();
+    renderTagMgr();
+    renderCalendar();
+    var statsView = document.getElementById('view-stats');
+    if(statsView.classList.contains('active')) renderStats();
+    alert(newEntries.length + '件のサンプル記録を追加しました');
+  };
+  function addKnownTagSilent(kind, val){
+    val = val.trim();
+    if(!val) return;
+    var exists = state.tags[kind].some(function(t){ return t.name === val; });
+    if(!exists) state.tags[kind].push({ name: val, hidden: false });
+  }
+
+  window.addEventListener('resize', function(){
+    [chartSymptom, chartMed].forEach(function(c){ if(c) c.resize(); });
+  });
+
+  // ---------- scroll to top ----------
+  var scrollTopButton = document.getElementById('scroll-top-btn');
+  var scrollTargets = [document.querySelector('main'), document.getElementById('record-form'), document.getElementById('cal-day-list')];
+  function activeScrollTargets(){
+    var activeView = document.querySelector('.view.active');
+    if(activeView && activeView.id === 'view-record') return [document.querySelector('main')];
+    return [document.querySelector('main')];
+  }
+  function updateScrollTopButton(){
+    var shouldShow = activeScrollTargets().some(function(target){ return target && target.scrollTop > 120; });
+    scrollTopButton.classList.toggle('show', shouldShow);
+  }
+  scrollTargets.forEach(function(target){
+    if(target) target.addEventListener('scroll', updateScrollTopButton, { passive:true });
+  });
+  scrollTopButton.onclick = function(){
+    activeScrollTargets().forEach(function(target){
+      if(target) target.scrollTo({ top:0, behavior:'smooth' });
+    });
+  };
+  document.querySelectorAll('.tab-btn').forEach(function(btn){ btn.addEventListener('click', updateScrollTopButton); });
+  updateScrollTopButton();
+
+  // ---------- auth modal & events ----------
+  function openAuthModal(){
+    document.getElementById('auth-overlay').classList.add('active');
+    showAuthMessage(null);
+    renderAuthUI();
+  }
+  function closeAuthModal(){
+    document.getElementById('auth-overlay').classList.remove('active');
+  }
+
+  document.getElementById('btn-auth-open').onclick = openAuthModal;
+  document.getElementById('auth-close').onclick = closeAuthModal;
+  document.getElementById('auth-overlay').onclick = function(e){
+    if(e.target === document.getElementById('auth-overlay')) closeAuthModal();
+  };
+
+  // 接続設定保存（モーダル内）
+  document.getElementById('btn-save-config').onclick = async function(){
+    var url = document.getElementById('cfg-supabase-url').value.trim();
+    var key = document.getElementById('cfg-supabase-key').value.trim();
+    var configError = validateSupabaseConfig(url, key);
+    if(configError){
+      showAuthMessage('error', configError);
+      return;
+    }
+    var previousConfig = localStorage.getItem(SUPABASE_CONFIG_KEY);
+    localStorage.setItem(SUPABASE_CONFIG_KEY, JSON.stringify({ url: url, key: key }));
+    var connected = await initSupabase();
+    if(connected){
+      showAuthMessage('success', '接続先設定を保存しました');
+    } else {
+      if(previousConfig === null) localStorage.removeItem(SUPABASE_CONFIG_KEY);
+      else localStorage.setItem(SUPABASE_CONFIG_KEY, previousConfig);
+      initSupabase();
+      showAuthMessage('error', 'Supabaseに接続できません。Project URLとAPI Keyを確認してください。');
+    }
+  };
+  document.getElementById('btn-delete-config').onclick = async function(){
+    if(this.disabled || !hasStoredSupabaseConfig()) return;
+    if(!confirm('保存済みのSupabase接続設定を削除しますか？')) return;
+    localStorage.removeItem(SUPABASE_CONFIG_KEY);
+    if(supabaseClient && supabaseClient.auth){
+      try{ await supabaseClient.auth.signOut(); }catch(e){ console.warn('Sign out failed while deleting config', e); }
+    }
+    supabaseClient = null;
+    currentUser = null;
+    initSupabase();
+    showAuthMessage('success', 'Supabase接続設定を削除しました');
+  };
+  ['cfg-supabase-url','cfg-supabase-key','auth-email','auth-password'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', updateAuthActionAvailability);
+  });
+  updateAuthActionAvailability();
+
+  // ログイン
+  document.getElementById('btn-auth-signin').onclick = async function(){
+    if(!supabaseClient){
+      showAuthMessage('error', '先に下部の「Supabase接続先設定」を設定してください');
+      return;
+    }
+    var email = document.getElementById('auth-email').value.trim();
+    var password = document.getElementById('auth-password').value;
+    if(!email || !password){
+      showAuthMessage('error', 'メールアドレスとパスワードを入力してください');
+      return;
+    }
+    showAuthMessage('info', 'ログイン中…');
+    try{
+      var res = await supabaseClient.auth.signInWithPassword({ email: email, password: password });
+      if(res.error){
+        showAuthMessage('error', 'ログイン失敗: ' + (res.error.message || '認証エラー'));
+      } else {
+        showAuthMessage('success', 'ログインしました！');
+        document.getElementById('auth-password').value = '';
+        setTimeout(closeAuthModal, 1500);
+      }
+    }catch(e){
+      showAuthMessage('error', '通信エラー: ' + e.message);
+    }
+  };
+
+  // 新規登録
+  document.getElementById('btn-auth-signup').onclick = async function(){
+    if(!supabaseClient){
+      showAuthMessage('error', '先に下部の「Supabase接続先設定」を設定してください');
+      return;
+    }
+    var email = document.getElementById('auth-email').value.trim();
+    var password = document.getElementById('auth-password').value;
+    if(!email || !password){
+      showAuthMessage('error', 'メールアドレスとパスワードを入力してください');
+      return;
+    }
+    if(password.length < 6){
+      showAuthMessage('error', 'パスワードは6文字以上必要です');
+      return;
+    }
+    showAuthMessage('info', 'アカウント作成中…');
+    try{
+      var res = await supabaseClient.auth.signUp({ email: email, password: password });
+      if(res.error){
+        showAuthMessage('error', '登録失敗: ' + (res.error.message || '登録エラー'));
+      } else {
+        if(res.data && res.data.session){
+          showAuthMessage('success', '登録＆ログインが完了しました！');
+          document.getElementById('auth-password').value = '';
+          setTimeout(closeAuthModal, 1500);
+        } else {
+          showAuthMessage('info', '確認メールを送信しました。メール内のリンクをクリックして認証を完了してください。（※Confirm email設定をOFFにしている場合はそのままログインできます）');
+        }
+      }
+    }catch(e){
+      showAuthMessage('error', '通信エラー: ' + e.message);
+    }
+  };
+
+  // ログアウト
+  document.getElementById('btn-auth-logout').onclick = async function(){
+    if(!supabaseClient) return;
+    try{
+      await supabaseClient.auth.signOut();
+      currentUser = null;
+      renderAuthUI();
+      updateCloudStatus('', '未ログイン');
+      showAuthMessage('info', 'ログアウトしました');
+    }catch(e){
+      showAuthMessage('error', 'ログアウト失敗: ' + e.message);
+    }
+  };
+
+  // 今すぐ手動同期
+  document.getElementById('btn-sync-now').onclick = async function(){
+    showAuthMessage('info', '同期中…');
+    await syncWithCloud(false);
+  };
+
+  // テーマ（ライト/ダーク）管理
+  var currentTheme = 'light';
+  function applyTheme(theme, save){
+    currentTheme = theme;
+    if(theme === 'dark'){
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.getElementById('theme-icon').textContent = '☀';
+      document.getElementById('btn-theme-toggle').setAttribute('title', 'ライトモードに切り替え');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      document.getElementById('theme-icon').textContent = '🌙';
+      document.getElementById('btn-theme-toggle').setAttribute('title', 'ダークモードに切り替え');
+    }
+    if(save){
+      try{ localStorage.setItem('headache_theme', theme); }catch(e){}
+    }
+  }
+
+  function initTheme(){
+    var saved = null;
+    try{ saved = localStorage.getItem('headache_theme'); }catch(e){}
+    if(saved === 'dark' || saved === 'light'){
+      applyTheme(saved, false);
+    } else if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){
+      applyTheme('dark', false);
+    } else {
+      applyTheme('light', false);
+    }
+
+    if(window.matchMedia){
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e){
+        var manual = null;
+        try{ manual = localStorage.getItem('headache_theme'); }catch(err){}
+        if(!manual){
+          applyTheme(e.matches ? 'dark' : 'light', false);
+        }
+      });
+    }
+  }
+
+  document.getElementById('btn-theme-toggle').onclick = function(){
+    var next = currentTheme === 'dark' ? 'light' : 'dark';
+    applyTheme(next, true);
+  };
+
+  // init
+  initTheme();
+  populateTimeSelects();
+  setFormDate(todayStr());
+  setCurrentTime();
+  document.getElementById('range-end').value = todayStr();
+  (function(){
+    var start = new Date();
+    start.setDate(start.getDate() - 29);
+    document.getElementById('range-start').value = start.getFullYear()+'-'+String(start.getMonth()+1).padStart(2,'0')+'-'+String(start.getDate()).padStart(2,'0');
+  })();
+  updateQuickRangeState();
+  renderSymptomDraft();
+  renderMedDraft();
+  renderMemoTagDraft();
+  updateSaveButtonLabel();
+  initCalendarState();
+  loadAll();
+  initSupabase();
+
+})();
+</script>
+</body>
+</html>

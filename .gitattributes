@@ -1,0 +1,9 @@
+# Auto detect text files and force LF normalization on commit
+* text=auto eol=lf
+
+*.html text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+
