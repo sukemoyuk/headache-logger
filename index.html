@@ -1051,6 +1051,13 @@
     </div>
     <div class="card sample-details">
       <details>
+        <summary>データのバックアップ</summary>
+        <p class="empty-hint">現在の記録とタグをJSONとして出力します。バックアップや後でのマージ/復元に使えます。</p>
+        <button class="btn" id="btn-export-json" style="width:100%; margin-bottom:10px;">JSONをエクスポート</button>
+      </details>
+    </div>
+    <div class="card sample-details">
+      <details>
         <summary>サンプルデータ</summary>
         <p class="empty-hint">動作確認用に、直近30日分・1日あたり1〜6件の記録を追加します。既存の記録は消えません。</p>
         <button class="btn" id="btn-add-sample" style="width:100%;">サンプルデータを追加</button>
@@ -2380,10 +2387,46 @@
   var medChartMode = 'daily';
   var metricMode = 'severity';
   var recentSortOrder = 'desc';
+  var statsViewStateKey = 'headache_stats_view_state';
+  function saveStatsViewState(){
+    try{
+      localStorage.setItem(statsViewStateKey, JSON.stringify({
+        rangeStart: document.getElementById('range-start').value,
+        rangeEnd: document.getElementById('range-end').value,
+        summaryMode: document.getElementById('stat-summary').getAttribute('data-mode') || 'count',
+        metricMode: metricMode,
+        symptomChartMode: symptomChartMode,
+        medChartMode: medChartMode,
+        recentSortOrder: recentSortOrder
+      }));
+    }catch(e){}
+  }
+  function restoreStatsViewState(){
+    try{
+      var saved = JSON.parse(localStorage.getItem(statsViewStateKey) || 'null');
+      if(!saved) return;
+      if(/^\d{4}-\d{2}-\d{2}$/.test(saved.rangeStart || '')) document.getElementById('range-start').value = saved.rangeStart;
+      if(/^\d{4}-\d{2}-\d{2}$/.test(saved.rangeEnd || '')) document.getElementById('range-end').value = saved.rangeEnd;
+      if(['count','1','2','3','4'].indexOf(saved.summaryMode) !== -1) document.getElementById('stat-summary').setAttribute('data-mode', saved.summaryMode);
+      if(saved.metricMode === 'severity' || saved.metricMode === 'count') metricMode = saved.metricMode;
+      if(saved.symptomChartMode === 'daily' || saved.symptomChartMode === 'cumulative') symptomChartMode = saved.symptomChartMode;
+      if(saved.medChartMode === 'daily' || saved.medChartMode === 'cumulative') medChartMode = saved.medChartMode;
+      if(saved.recentSortOrder === 'asc' || saved.recentSortOrder === 'desc') recentSortOrder = saved.recentSortOrder;
+      document.querySelectorAll('[data-timeline-action]').forEach(function(btn){
+        var action = btn.getAttribute('data-timeline-action');
+        var active = action === 'symptom-state' ? metricMode === 'severity' :
+          action === 'symptom-count-daily' ? metricMode === 'count' && symptomChartMode === 'daily' :
+          action === 'symptom-count-cumulative' ? metricMode === 'count' && symptomChartMode === 'cumulative' :
+          action === 'med-daily' ? medChartMode === 'daily' : medChartMode === 'cumulative';
+        btn.classList.toggle('active', active);
+      });
+    }catch(e){}
+  }
 
   document.querySelectorAll('[data-recent-sort]').forEach(function(button){
     button.onclick = function(){
       recentSortOrder = button.getAttribute('data-recent-sort');
+      saveStatsViewState();
       renderRecent(filteredEntries());
     };
   });
@@ -2418,6 +2461,7 @@
         document.querySelector('[data-timeline-action="med-daily"]').classList.remove('active');
         document.querySelector('[data-timeline-action="med-cumulative"]').classList.add('active');
       }
+      saveStatsViewState();
       renderStats();
     };
   });
@@ -2438,6 +2482,7 @@
         document.getElementById('range-start').value = start.getFullYear()+'-'+String(start.getMonth()+1).padStart(2,'0')+'-'+String(start.getDate()).padStart(2,'0');
       }
       document.querySelector('.quick-range').classList.remove('custom-period');
+      saveStatsViewState();
       renderStats();
     };
   });
@@ -2469,11 +2514,13 @@
   document.getElementById('range-start').addEventListener('change', function(){
     document.querySelectorAll('.quick-range button').forEach(function(btn){ btn.classList.remove('active'); });
     document.querySelector('.quick-range').classList.add('custom-period');
+    saveStatsViewState();
     renderStats();
   });
   document.getElementById('range-end').addEventListener('change', function(){
     document.querySelectorAll('.quick-range button').forEach(function(btn){ btn.classList.remove('active'); });
     document.querySelector('.quick-range').classList.add('custom-period');
+    saveStatsViewState();
     renderStats();
   });
 
@@ -2529,28 +2576,83 @@
     if(entries.length === 0){
       summary.innerHTML = '<div class="empty">この期間の集計データがありません</div>';
     } else {
+      var dayCountByDate = {};
+      var symptomByDate = {};
+      var medByDate = {};
+      entries.forEach(function(e){
+        dayCountByDate[e.date] = true;
+        if(!symptomByDate[e.date]) symptomByDate[e.date] = {};
+        if(!medByDate[e.date]) medByDate[e.date] = {};
+        var dailySymptoms = symptomByDate[e.date];
+        e.symptoms.forEach(function(s){
+          if(!dailySymptoms[s.tag]) dailySymptoms[s.tag] = { count: 0, severitySum: 0 };
+          dailySymptoms[s.tag].count++;
+          dailySymptoms[s.tag].severitySum += Number(s.severity) || 0;
+        });
+        e.meds.forEach(function(m){ medByDate[e.date][m] = true; });
+      });
+      var summaryMode = summary.getAttribute('data-mode') || 'count';
+      var threshold = summaryMode === 'count' ? 0 : Number(summaryMode);
       var totalBox = document.createElement('div');
       totalBox.className = 'stat-box';
-      totalBox.innerHTML = '<div class="num">' + entries.length + '回</div><div class="lbl">記録件数</div>';
+      totalBox.innerHTML = threshold ? '<div class="num">' + Object.keys(dayCountByDate).length + '日</div><div class="lbl">記録日数</div>' : '<div class="num">' + entries.length + '回</div><div class="lbl">記録件数</div>';
       summary.appendChild(totalBox);
       symptomNames.forEach(function(tag){
         var stat = symptomStats[tag];
         var box = document.createElement('div');
         box.className = 'stat-box';
-        box.innerHTML = '<div class="num">' + stat.count + '回 / ' + (stat.severitySum / stat.count).toFixed(1) + '</div><div class="lbl">体調：' + escapeHtml(tag) + '</div>';
+        if(threshold){
+          var days = Object.keys(symptomByDate).filter(function(date){
+            var daily = symptomByDate[date][tag];
+            return daily && daily.severitySum / daily.count >= threshold;
+          }).length;
+          box.innerHTML = '<div class="num">' + days + '日 / ' + threshold + '以上</div><div class="lbl">体調：' + escapeHtml(tag) + '</div>';
+        } else {
+          box.innerHTML = '<div class="num">' + stat.count + '回 / ' + (stat.severitySum / stat.count).toFixed(1) + '</div><div class="lbl">体調：' + escapeHtml(tag) + '</div>';
+        }
         summary.appendChild(box);
       });
       medNames.forEach(function(tag){
         var medBox = document.createElement('div');
         medBox.className = 'stat-box';
-        medBox.innerHTML = '<div class="num">' + medStats[tag] + '回</div><div class="lbl">服薬：' + escapeHtml(tag) + '</div>';
+        if(threshold){
+          var medDays = Object.keys(medByDate).filter(function(date){ return !!medByDate[date][tag]; }).length;
+          medBox.innerHTML = '<div class="num">' + medDays + '日</div><div class="lbl">服薬：' + escapeHtml(tag) + '</div>';
+        } else {
+          medBox.innerHTML = '<div class="num">' + medStats[tag] + '回</div><div class="lbl">服薬：' + escapeHtml(tag) + '</div>';
+        }
         summary.appendChild(medBox);
+      });
+      summary.querySelectorAll('.stat-box').forEach(function(box){
+        box.setAttribute('role', 'button');
+        box.setAttribute('tabindex', '0');
+        box.setAttribute('aria-label', 'タップして集計表示を切り替え');
+        box.style.cursor = 'pointer';
       });
     }
 
     renderTimelineCharts(entries);
     renderRecent(entries);
   }
+
+  var summaryModes = ['count', '1', '2', '3', '4'];
+  function cycleSummaryMode(){
+    var summary = document.getElementById('stat-summary');
+    var current = summary.getAttribute('data-mode') || 'count';
+    var nextIndex = (summaryModes.indexOf(current) + 1) % summaryModes.length;
+    summary.setAttribute('data-mode', summaryModes[nextIndex]);
+    saveStatsViewState();
+    renderStats();
+  }
+  document.getElementById('stat-summary').addEventListener('click', function(e){
+    if(e.target.closest('.stat-box')) cycleSummaryMode();
+  });
+  document.getElementById('stat-summary').addEventListener('keydown', function(e){
+    if((e.key === 'Enter' || e.key === ' ') && e.target.closest('.stat-box')){
+      e.preventDefault();
+      cycleSummaryMode();
+    }
+  });
 
   // ---------- timeline bucketing ----------
   function pad2(n){ return String(n).padStart(2,'0'); }
@@ -2942,6 +3044,30 @@
     }
   };
 
+  // ---------- json export ----------
+  document.getElementById('btn-export-json').onclick = function(){
+    var exportData = {
+      exportVersion: 1,
+      exportedAt: new Date().toISOString(),
+      app: 'headache-logger',
+      entries: Array.isArray(state.entries) ? state.entries : [],
+      tags: state.tags || { symptom: [], med: [], memo: [] }
+    };
+
+    var blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    var now = new Date();
+    var stamp = now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate()) + '-' + pad2(now.getHours()) + pad2(now.getMinutes());
+
+    link.href = url;
+    link.download = 'headache-logger-export-' + stamp + '.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 0);
+  };
+
   // ---------- sample data ----------
   document.getElementById('btn-add-sample').onclick = async function(){
     var symptomPool = ['頭痛','めまい','吐き気'];
@@ -3238,6 +3364,7 @@
     start.setDate(start.getDate() - 29);
     document.getElementById('range-start').value = start.getFullYear()+'-'+String(start.getMonth()+1).padStart(2,'0')+'-'+String(start.getDate()).padStart(2,'0');
   })();
+  restoreStatsViewState();
   updateQuickRangeState();
   renderSymptomDraft();
   renderMedDraft();
