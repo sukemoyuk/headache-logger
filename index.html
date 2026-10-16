@@ -1054,6 +1054,9 @@
         <summary>データのバックアップ</summary>
         <p class="empty-hint">現在の記録とタグをJSONとして出力します。バックアップや後でのマージ/復元に使えます。</p>
         <button class="btn" id="btn-export-json" style="width:100%; margin-bottom:10px;">JSONをエクスポート</button>
+        <p class="empty-hint">バックアップJSONを読み込み、既存の記録と統合します。同じIDの記録は重複して追加されません。</p>
+        <input id="import-json-file" type="file" accept=".json,application/json" style="display:none;">
+        <button class="btn" id="btn-import-json" type="button" style="width:100%;">JSONをインポート</button>
       </details>
     </div>
     <div class="card sample-details">
@@ -3066,6 +3069,77 @@
     link.click();
     document.body.removeChild(link);
     setTimeout(function(){ URL.revokeObjectURL(url); }, 0);
+  };
+
+  // ---------- json import ----------
+  document.getElementById('btn-import-json').onclick = function(){
+    document.getElementById('import-json-file').click();
+  };
+  document.getElementById('import-json-file').onchange = async function(){
+    var file = this.files && this.files[0];
+    this.value = '';
+    if(!file) return;
+
+    try{
+      var imported = JSON.parse(await file.text());
+      if(!imported || typeof imported !== 'object' || Array.isArray(imported) ||
+         imported.app !== 'headache-logger' || imported.exportVersion !== 1 ||
+         !Array.isArray(imported.entries) || !imported.tags || typeof imported.tags !== 'object'){
+        throw new Error('このアプリのエクスポートJSONではありません。');
+      }
+      var validEntries = imported.entries.every(function(entry){
+        return entry && typeof entry === 'object' && !Array.isArray(entry) &&
+          typeof entry.id === 'string' && entry.id.length > 0 &&
+          typeof entry.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(entry.date) &&
+          Array.isArray(entry.symptoms) && entry.symptoms.every(function(symptom){
+            return symptom && typeof symptom.tag === 'string' && Number.isInteger(Number(symptom.severity));
+          }) && Array.isArray(entry.meds) && entry.meds.every(function(med){ return typeof med === 'string'; }) &&
+          (entry.memo === undefined || typeof entry.memo === 'string') &&
+          (entry.memoTags === undefined || (Array.isArray(entry.memoTags) && entry.memoTags.every(function(tag){ return typeof tag === 'string'; })));
+      });
+      if(!validEntries) throw new Error('記録の形式が正しくありません。');
+      var importedTags = migrateTags(imported.tags);
+      var validTags = ['symptom','med','memo'].every(function(kind){
+        return Array.isArray(importedTags[kind]) && importedTags[kind].every(function(tag){ return tag && typeof tag.name === 'string'; });
+      });
+      if(!validTags) throw new Error('タグの形式が正しくありません。');
+
+      var seenIds = {};
+      state.entries.forEach(function(entry){ if(entry && entry.id) seenIds[entry.id] = true; });
+      var additions = imported.entries.filter(function(entry){
+        if(seenIds[entry.id]) return false;
+        seenIds[entry.id] = true;
+        return true;
+      });
+      var duplicateCount = imported.entries.length - additions.length;
+      if(!confirm('JSON内の記録 ' + imported.entries.length + '件のうち、新しく追加する ' + additions.length + '件を取り込みます。既存の記録は保持されます。続けますか？')) return;
+
+      state.entries = state.entries.concat(additions);
+      ['symptom','med','memo'].forEach(function(kind){
+        importedTags[kind].forEach(function(tag){
+          var existing = state.tags[kind].find(function(current){ return current.name === tag.name; });
+          if(!existing) state.tags[kind].push(tag);
+        });
+      });
+      state.entries.forEach(function(entry){
+        entry.symptoms.forEach(function(symptom){ addKnownTagSilent('symptom', symptom.tag); });
+        entry.meds.forEach(function(med){ addKnownTagSilent('med', med); });
+        (entry.memoTags || []).forEach(function(tag){ addKnownTagSilent('memo', tag); });
+      });
+
+      await saveEntries();
+      await saveTags();
+      renderSymptomDraft();
+      renderMedDraft();
+      renderMemoTagDraft();
+      renderTagMgr();
+      renderCalendar();
+      var statsView = document.getElementById('view-stats');
+      if(statsView.classList.contains('active')) renderStats();
+      alert(additions.length + '件の記録を取り込みました。' + (duplicateCount ? '同じIDのため ' + duplicateCount + '件はスキップしました。' : ''));
+    }catch(error){
+      alert('インポートできませんでした: ' + (error.message || 'JSONファイルを確認してください。'));
+    }
   };
 
   // ---------- sample data ----------
