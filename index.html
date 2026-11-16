@@ -1597,6 +1597,9 @@
     renderTagMgr();
     renderCalendar();
     syncEditingFromTime();
+    updateQuickRangeState();
+    var statsView = document.getElementById('view-stats');
+    if(statsView && statsView.classList.contains('active')) renderStats();
   }
 
   async function saveEntries(){
@@ -2477,8 +2480,9 @@
       var endStr = todayStr();
       document.getElementById('range-end').value = endStr;
       if(days === 0){
-        var earliest = state.entries.reduce(function(min, e){ return (!min || e.date < min) ? e.date : min; }, null);
-        document.getElementById('range-start').value = earliest || endStr;
+        var bounds = getEntryDateBounds();
+        document.getElementById('range-start').value = bounds.start || endStr;
+        document.getElementById('range-end').value = bounds.end || endStr;
       } else {
         var start = new Date();
         start.setDate(start.getDate() - (days - 1));
@@ -2490,15 +2494,24 @@
     };
   });
 
+  function getEntryDateBounds(){
+    return state.entries.reduce(function(bounds, entry){
+      if(!entry.date) return bounds;
+      if(!bounds.start || entry.date < bounds.start) bounds.start = entry.date;
+      if(!bounds.end || entry.date > bounds.end) bounds.end = entry.date;
+      return bounds;
+    }, { start: null, end: null });
+  }
+
   function updateQuickRangeState(){
     var start = document.getElementById('range-start').value;
     var end = document.getElementById('range-end').value;
     var today = todayStr();
-    var earliest = state.entries.reduce(function(min, e){ return (!min || e.date < min) ? e.date : min; }, null);
+    var bounds = getEntryDateBounds();
     var ranges = {
       'btn-range-today': { start: today, end: today },
       'btn-range-30': { start: fmtDateStr(new Date(new Date().setDate(new Date().getDate() - 29))), end: today },
-      'btn-range-all': { start: earliest || today, end: today }
+      'btn-range-all': { start: bounds.start || today, end: bounds.end || today }
     };
     var sevenStart = new Date();
     sevenStart.setDate(sevenStart.getDate() - 6);
