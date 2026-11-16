@@ -1597,6 +1597,13 @@
     renderTagMgr();
     renderCalendar();
     syncEditingFromTime();
+    var entryBounds = getEntryDateBounds();
+    if(statsRangePreset === 'all' || (entryBounds.start && document.getElementById('range-start').value === entryBounds.start && document.getElementById('range-end').value === todayStr())){
+      statsRangePreset = 'all';
+      document.getElementById('range-start').value = entryBounds.start || todayStr();
+      document.getElementById('range-end').value = entryBounds.end || todayStr();
+      saveStatsViewState();
+    }
     updateQuickRangeState();
     var statsView = document.getElementById('view-stats');
     if(statsView && statsView.classList.contains('active')) renderStats();
@@ -2393,12 +2400,14 @@
   var medChartMode = 'daily';
   var metricMode = 'severity';
   var recentSortOrder = 'desc';
+  var statsRangePreset = null;
   var statsViewStateKey = 'headache_stats_view_state';
   function saveStatsViewState(){
     try{
       localStorage.setItem(statsViewStateKey, JSON.stringify({
         rangeStart: document.getElementById('range-start').value,
         rangeEnd: document.getElementById('range-end').value,
+        rangePreset: statsRangePreset,
         summaryMode: document.getElementById('stat-summary').getAttribute('data-mode') || 'count',
         metricMode: metricMode,
         symptomChartMode: symptomChartMode,
@@ -2411,6 +2420,7 @@
     try{
       var saved = JSON.parse(localStorage.getItem(statsViewStateKey) || 'null');
       if(!saved) return;
+      if(['today','7','30','all'].indexOf(saved.rangePreset) !== -1) statsRangePreset = saved.rangePreset;
       if(/^\d{4}-\d{2}-\d{2}$/.test(saved.rangeStart || '')) document.getElementById('range-start').value = saved.rangeStart;
       if(/^\d{4}-\d{2}-\d{2}$/.test(saved.rangeEnd || '')) document.getElementById('range-end').value = saved.rangeEnd;
       if(['count','1','2','3','4'].indexOf(saved.summaryMode) !== -1) document.getElementById('stat-summary').setAttribute('data-mode', saved.summaryMode);
@@ -2477,6 +2487,8 @@
       document.querySelectorAll('.quick-range button').forEach(function(b){ b.classList.remove('active'); });
       btn.classList.add('active');
       var days = parseInt(btn.getAttribute('data-days'), 10);
+      statsRangePreset = days === 0 ? 'all' : String(days);
+      if(btn.id === 'btn-range-today') statsRangePreset = 'today';
       var endStr = todayStr();
       document.getElementById('range-end').value = endStr;
       if(days === 0){
@@ -2528,12 +2540,14 @@
   }
 
   document.getElementById('range-start').addEventListener('change', function(){
+    statsRangePreset = null;
     document.querySelectorAll('.quick-range button').forEach(function(btn){ btn.classList.remove('active'); });
     document.querySelector('.quick-range').classList.add('custom-period');
     saveStatsViewState();
     renderStats();
   });
   document.getElementById('range-end').addEventListener('change', function(){
+    statsRangePreset = null;
     document.querySelectorAll('.quick-range button').forEach(function(btn){ btn.classList.remove('active'); });
     document.querySelector('.quick-range').classList.add('custom-period');
     saveStatsViewState();
@@ -2573,6 +2587,13 @@
   }
 
   function renderStats(){
+    if(statsRangePreset === 'all'){
+      var allBounds = getEntryDateBounds();
+      document.getElementById('range-start').value = allBounds.start || todayStr();
+      document.getElementById('range-end').value = allBounds.end || todayStr();
+      saveStatsViewState();
+      updateQuickRangeState();
+    }
     var entries = filteredEntries();
     var symptomStats = {};
     var medStats = {};
@@ -2708,17 +2729,18 @@
       }
       return { granularity: 'day', buckets: out2, caption: startStr + ' 〜 ' + endStr + '（日単位）' };
     } else {
+      var out3 = [];
+      var weekStart = new Date(startD);
+      while(weekStart <= endD){
         (function(wStart){
-          var wEnd = new Date(wStart); wEnd.setDate(wEnd.getDate() + 6);
+          var wEnd = new Date(wStart);
+          wEnd.setDate(wEnd.getDate() + 6);
           var wStartStr = fmtDateStr(wStart);
           var wEndStr = fmtDateStr(wEnd < endD ? wEnd : endD);
           out3.push({ label: (wStart.getMonth()+1) + '/' + wStart.getDate() + '週', match: function(e){ return e.date >= wStartStr && e.date <= wEndStr; } });
         })(new Date(weekStart));
         weekStart.setDate(weekStart.getDate() + 7);
       }
-
-      function validateSupabaseConfig(url, key){
-        if(!url && !key) return 'Project URLとAPI Keyを入力してください。';
       return { granularity: 'week', buckets: out3, caption: startStr + ' 〜 ' + endStr + '（週単位）' };
     }
   }
