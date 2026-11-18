@@ -79,10 +79,9 @@
     flex-shrink:0;
   }
   .header-row{
-    display:flex;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
     align-items:center;
-    justify-content:space-between;
-    gap:12px;
   }
   header h1{
     font-size:19px;
@@ -90,7 +89,24 @@
     margin:0;
     letter-spacing:0.01em;
   }
+  .app-logo{
+    display:block;
+    height:48px;
+    width:auto;
+    max-width:100%;
+    grid-column:2;
+    grid-row:1;
+  }
+  .app-logo-dark{display:none;}
+  [data-theme="dark"] .app-logo-light{display:none;}
+  [data-theme="dark"] .app-logo-dark{display:block;}
+  @media (min-width:768px){
+    .app-logo{height:64px;}
+  }
   header p{
+    grid-column:3;
+    grid-row:1;
+    justify-self:end;
     margin:0;
     font-size:12px;
     color:var(--ink-soft);
@@ -865,7 +881,8 @@
 
 <header>
   <div class="header-row">
-    <h1>頭痛ろぐ</h1>
+    <img class="app-logo app-logo-light" src="img/header-light@2x.png" srcset="img/header-light@1x.png 1x, img/header-light@2x.png 2x, img/header-light@3x.png 3x" alt="頭痛ろぐ" width="139" height="48">
+    <img class="app-logo app-logo-dark" src="img/header-dark@2x.png" srcset="img/header-dark@1x.png 1x, img/header-dark@2x.png 2x, img/header-dark@3x.png 3x" alt="頭痛ろぐ" width="138" height="48">
     <p id="header-sub">読み込み中…</p>
   </div>
 </header>
