@@ -1,6 +1,7 @@
 <div align="center">
 
-# 頭痛ろぐ
+<img src="img/header-light@2x.png#gh-light-mode-only" alt="頭痛ろぐ" width="139" height="48">
+<img src="img/header-dark@2x.png#gh-dark-mode-only" alt="頭痛ろぐ" width="138" height="48">
 
 **サーバーレスかつプライバシー重視の、マルチデバイス対応・頭痛記録Webアプリケーション**
 
